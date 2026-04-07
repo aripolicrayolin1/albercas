@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   ArrowLeft, CreditCard, Wifi, User, Mail, Phone,
-  Shield, Waves, Check, AlertTriangle, Loader, RefreshCw,
+  Shield, Waves, Check, AlertTriangle, Loader, RefreshCw, CheckCircle,
 } from 'lucide-react';
 import { useUsers } from '../../context/UserContext';
 import { nfcService } from '../../services/nfcService';
@@ -112,7 +112,7 @@ export default function UserForm({ onNavigate }) {
     const errs = {};
     if (!form.name.trim())  errs.name  = 'El nombre es requerido';
     if (!form.email.trim()) errs.email = 'El correo es requerido';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(form.email))
       errs.email = 'Correo inválido';
     if (users.some(u => u.email === form.email))
       errs.email = 'Este correo ya está registrado';
