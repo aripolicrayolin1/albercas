@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Search, Sun } from 'lucide-react';
+import { Bell, Search, Sun, Menu, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ROLE_LABELS, ROLE_COLORS } from '../../data/roles';
 
@@ -20,7 +20,7 @@ const PAGE_TITLES = {
   '/help': 'Centro de Ayuda',
 };
 
-export default function Header({ currentPath, sidebarCollapsed }) {
+export default function Header({ currentPath, sidebarCollapsed, onToggleMobileMenu, onNavigate }) {
   const { user } = useAuth();
   if (!user) return null;
 
@@ -35,6 +35,13 @@ export default function Header({ currentPath, sidebarCollapsed }) {
       role="banner"
     >
       <div className="header-left">
+        <button 
+          className="header-btn mobile-menu-btn" 
+          onClick={onToggleMobileMenu}
+          aria-label="Abrir menú"
+        >
+          <Menu size={20} />
+        </button>
         <div>
           <div className="header-title">{title}</div>
           <div className="header-breadcrumb" style={{ fontSize: 11 }}>
@@ -52,7 +59,13 @@ export default function Header({ currentPath, sidebarCollapsed }) {
           <span className="notif-badge" aria-hidden="true"></span>
         </button>
 
-        <div className="flex items-center gap-2" style={{ marginLeft: 4 }}>
+        <div 
+          className="flex items-center gap-2" 
+          style={{ marginLeft: 4, cursor: 'pointer', transition: 'opacity 0.2s' }}
+          onClick={() => onNavigate('/profile')}
+          onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+        >
           <div
             style={{
               width: 32,
@@ -75,7 +88,7 @@ export default function Header({ currentPath, sidebarCollapsed }) {
               {user.name.split(' ')[0]}
             </span>
             <span
-              className="badge"
+              className={`badge`}
               style={{
                 background: `${roleColor}22`,
                 color: roleColor,

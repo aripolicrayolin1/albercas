@@ -1,16 +1,21 @@
-import React, { useState } from 'react';
-import { Search, Plus, Edit, Eye, Trash2, CreditCard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, Edit, Eye, Trash2, CreditCard, Download, FileText, Table as TableIcon, FileDigit, Key } from 'lucide-react';
+import axios from 'axios';
 import { useUsers } from '../../context/UserContext';
 import { ROLE_LABELS, ROLE_COLORS } from '../../data/roles';
 import { useAuth } from '../../context/AuthContext';
+import { exportService } from '../../services/exportService';
+import UserModal from './UserModal'; // Novedad: Importar Modal abstracto
 
 export default function UserList({ onNavigate }) {
   const { user } = useAuth();
-  const { users, deleteUser, updateUser } = useUsers();   // ← real context
+  const { users, deleteUser, updateUser } = useUsers();
   const [search, setSearch] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [showExportOptions, setShowExportOptions] = useState(false);
+  const [activeUser, setActiveUser] = useState(null); // Data del usuario clickeado
+  const [modalMode, setModalMode] = useState('view'); // 'view' | 'edit'
 
   const canCreate = user?.role === 'superadmin';
   const canEdit   = user?.role === 'superadmin' || user?.role === 'admin';
@@ -26,8 +31,71 @@ export default function UserList({ onNavigate }) {
     return matchSearch && matchRole && matchStatus;
   });
 
-  const handleToggleStatus = (u) => {
-    updateUser(u.id, { status: u.status === 'activo' ? 'inactivo' : 'activo' });
+  const handleResetPassword = async (u) => {
+    if (window.confirm(`¿Seguro que deseas generar una nueva contraseña para ${u.name}?`)) {
+      try {
+        const res = await axios.put(`http://${window.location.hostname}:3001/api/users/${u.id}/reset-password`);
+        alert(`Nueva contraseña generada para ${u.name}: ${res.data.newPassword}\n\nPor favor, entrega esta clave al usuario.`);
+      } catch (err) {
+        alert('Error al resetear la contraseña');
+      }
+    }
+  };
+
+  const handleToggleStatus = async (u) => {
+    const newStatus = u.status === 'activo' ? 'inactivo' : 'activo';
+    try {
+      await updateUser(u.id, { ...u, status: newStatus });
+    } catch (err) {
+      alert('Error al actualizar el estado');
+    }
+  };
+
+  // -- EXPORTS --
+  const handleExportPDF = () => {
+    const title = 'Padrón de Usuarios — Sistema Municipal';
+    const columns = [
+      { header: 'Nombre', dataKey: 'nombre' },
+      { header: 'Email', dataKey: 'email' },
+      { header: 'Rol', dataKey: 'rol' },
+      { header: 'NFC', dataKey: 'nfc' },
+      { header: 'Membresía', dataKey: 'membresia' },
+      { header: 'Estado', dataKey: 'estado' },
+    ];
+    const data = filtered.map(u => ({
+      nombre: u.name,
+      email: u.email,
+      rol: ROLE_LABELS[u.role],
+      nfc: u.nfcCard || 'N/A',
+      membresia: u.membership || 'Ninguda',
+      estado: u.status
+    }));
+    exportService.exportToPDF(title, columns, data, 'usuarios_municipal.pdf');
+    setShowExportOptions(false);
+  };
+
+  const handleExportExcel = () => {
+    const data = filtered.map(u => ({
+      Nombre: u.name,
+      Email: u.email,
+      Rol: ROLE_LABELS[u.role],
+      'Tarjeta NFC': u.nfcCard || 'N/A',
+      Membresía: u.membership || 'Ninguna',
+      Estado: u.status,
+      'Fecha Alta': u.joinDate
+    }));
+    exportService.exportToExcel(data, 'usuarios_municipal.xlsx');
+    setShowExportOptions(false);
+  };
+
+  const handleExportWord = () => {
+    const title = 'Directorio de Usuarios — Alberca Municipal';
+    const columns = ['Nombre', 'Email', 'Rol', 'NFC', 'Estado', 'Fecha Registro'];
+    const data = filtered.map(u => [
+      u.name, u.email, ROLE_LABELS[u.role], u.nfcCard || 'N/A', u.status, u.joinDate
+    ]);
+    exportService.exportToWord(title, columns, data, 'usuarios_municipal.doc');
+    setShowExportOptions(false);
   };
 
   return (
@@ -39,8 +107,44 @@ export default function UserList({ onNavigate }) {
             {users.length} usuarios registrados · {users.filter(u => u.status === 'activo').length} activos
           </p>
         </div>
-        {canCreate && (
-          <div className="page-actions">
+        
+        <div className="page-actions" style={{ position: 'relative' }}>
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => setShowExportOptions(!showExportOptions)}
+            id="export-users-btn"
+          >
+            <Download size={14} /> Exportar
+          </button>
+
+          {showExportOptions && (
+            <div className="card shadow-lg animate-slide-up" style={{
+              position: 'absolute', top: '100%', right: 0, marginTop: 8,
+              zIndex: 100, width: 220, padding: 8, background: 'var(--color-surface)'
+            }}>
+              <div style={{ padding: '8px 12px', fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Descargar Lista</div>
+              <button 
+                className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', gap: 10, fontSize: 13 }}
+                onClick={handleExportPDF}
+              >
+                <FileText size={16} color="#ef4444" /> Formato PDF (.pdf)
+              </button>
+              <button 
+                className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', gap: 10, fontSize: 13 }}
+                onClick={handleExportExcel}
+              >
+                <TableIcon size={16} color="#10b981" /> Formato Excel (.xlsx)
+              </button>
+              <button 
+                className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', gap: 10, fontSize: 13 }}
+                onClick={handleExportWord}
+              >
+                <FileDigit size={16} color="#6366f1" /> Formato Word (.doc)
+              </button>
+            </div>
+          )}
+
+          {canCreate && (
             <button
               className="btn btn-primary"
               onClick={() => onNavigate('/users/new')}
@@ -48,8 +152,8 @@ export default function UserList({ onNavigate }) {
             >
               <Plus size={16} /> Nuevo Usuario
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -117,7 +221,6 @@ export default function UserList({ onNavigate }) {
                 const initials  = u.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
                 return (
                   <tr key={u.id}>
-                    {/* Avatar + name */}
                     <td>
                       <div className="flex items-center gap-3">
                         <div style={{
@@ -139,7 +242,6 @@ export default function UserList({ onNavigate }) {
                         {ROLE_LABELS[u.role]}
                       </span>
                     </td>
-                    {/* NFC card */}
                     <td>
                       <div className="flex items-center gap-1">
                         <CreditCard size={12} color="var(--color-text-muted)" />
@@ -156,7 +258,6 @@ export default function UserList({ onNavigate }) {
                     </td>
                     <td style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>{u.joinDate}</td>
                     <td>
-                      {/* Clickable status to toggle */}
                       {canEdit ? (
                         <button
                           className={`badge ${u.status === 'activo' ? 'badge-success' : 'badge-danger'}`}
@@ -175,11 +276,22 @@ export default function UserList({ onNavigate }) {
                     </td>
                     <td>
                       <div className="flex gap-1">
-                        <button className="btn btn-ghost" title="Ver perfil" id={`view-user-${u.id}`}>
+                        {canCreate && (
+                          <button 
+                            className="btn btn-ghost" 
+                            title="Resetear Contraseña" 
+                            onClick={() => handleResetPassword(u)} 
+                            id={`reset-pass-${u.id}`}
+                            style={{ color: 'var(--color-primary)' }}
+                          >
+                            <Key size={14} />
+                          </button>
+                        )}
+                        <button className="btn btn-ghost" title="Ver perfil" onClick={() => { setActiveUser(u); setModalMode('view'); }} id={`view-user-${u.id}`}>
                           <Eye size={14} />
                         </button>
                         {canEdit && (
-                          <button className="btn btn-ghost" title="Editar" id={`edit-user-${u.id}`}>
+                          <button className="btn btn-ghost" title="Editar" onClick={() => { setActiveUser(u); setModalMode('edit'); }} id={`edit-user-${u.id}`}>
                             <Edit size={14} />
                           </button>
                         )}
@@ -205,6 +317,16 @@ export default function UserList({ onNavigate }) {
           </table>
         </div>
       </div>
+
+      {activeUser && (
+        <UserModal 
+          user={activeUser} 
+          mode={modalMode} 
+          onClose={() => setActiveUser(null)} 
+          onSave={updateUser} 
+          canEdit={canEdit} 
+        />
+      )}
     </div>
   );
 }

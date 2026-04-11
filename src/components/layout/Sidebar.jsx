@@ -13,7 +13,14 @@ const ICON_MAP = {
   User, History,
 };
 
-export default function Sidebar({ currentPath, onNavigate, collapsed, onToggleCollapse }) {
+export default function Sidebar({ 
+  currentPath, 
+  onNavigate, 
+  collapsed, 
+  onToggleCollapse,
+  mobileOpen,
+  onMobileClose 
+}) {
   const { user, logout } = useAuth();
   if (!user) return null;
 
@@ -23,7 +30,11 @@ export default function Sidebar({ currentPath, onNavigate, collapsed, onToggleCo
   const initials = user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`} role="navigation" aria-label="Navegación principal">
+    <aside 
+      className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`} 
+      role="navigation" 
+      aria-label="Navegación principal"
+    >
       {/* Logo */}
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">

@@ -18,7 +18,7 @@ export default function Login({ onLoginSuccess }) {
 
     await new Promise(r => setTimeout(r, 600)); // Simulate auth delay
 
-    const result = login(email, password);
+    const result = await login(email, password);
     setLoading(false);
 
     if (!result.success) {

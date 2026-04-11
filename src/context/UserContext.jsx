@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mockUsers } from '../data/mockData';
+import axios from 'axios';
 
-const STORAGE_KEY = 'app_users';
-
+const API_URL = `http://${window.location.hostname}:3001/api`;
 const UserContext = createContext(null);
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -18,30 +17,30 @@ export function generateNFCCard(existingUsers = []) {
   return attempt;
 }
 
-/** Seed from localStorage or fall back to mock data */
-function loadUsers() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (_) {}
-  return mockUsers;
-}
-
-function saveUsers(users) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
-}
-
 // ── Provider ─────────────────────────────────────────────────────────────────
 
 export function UserProvider({ children }) {
-  const [users, setUsers] = useState(loadUsers);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // persist on every change
+  // Fetch from REAL backend
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`${API_URL}/users`);
+      setUsers(res.data);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    saveUsers(users);
-  }, [users]);
+    fetchUsers();
+  }, []);
 
-  const addUser = (userData) => {
+  const addUser = async (userData) => {
     const newUser = {
       id: `u${Date.now()}`,
       status: 'activo',
@@ -49,21 +48,48 @@ export function UserProvider({ children }) {
       avatar: null,
       ...userData,
     };
-    setUsers(prev => [...prev, newUser]);
-    return newUser;
+    
+    try {
+      const res = await axios.post(`${API_URL}/users`, newUser);
+      const createdUser = res.data.user;
+      setUsers(prev => [createdUser, ...prev]);
+      return createdUser;
+    } catch (err) {
+      console.error('Error adding user:', err);
+      throw err;
+    }
   };
 
-  const updateUser = (id, updates) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+  const updateUser = async (id, updates) => {
+    try {
+      await axios.put(`${API_URL}/users/${id}`, updates);
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+    } catch (err) {
+      console.error('Error updating user:', err);
+      throw err;
+    }
   };
 
-  const deleteUser = (id) => {
-    setUsers(prev => prev.filter(u => u.id !== id));
+  const deleteUser = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/users/${id}`);
+      setUsers(prev => prev.filter(u => u.id !== id));
+    } catch(err) {
+      console.error('Error deleting user:', err);
+      throw err;
+    }
   };
 
   const getUserById = (id) => users.find(u => u.id === id) || null;
 
-  const getUserByNFC = (nfcCard) => users.find(u => u.nfcCard === nfcCard) || null;
+  const getUserByNFC = async (nfcCard) => {
+    try {
+      const res = await axios.get(`${API_URL}/users/nfc/${nfcCard}`);
+      return res.data;
+    } catch (err) {
+      return null;
+    }
+  };
 
   return (
     <UserContext.Provider value={{ users, addUser, updateUser, deleteUser, getUserById, getUserByNFC }}>

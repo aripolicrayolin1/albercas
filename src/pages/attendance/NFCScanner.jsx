@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Wifi, WifiOff, CheckCircle, XCircle, Clock,
-  Users, StopCircle, Play, AlertTriangle, Smartphone, Info,
+  Users, StopCircle, Play, AlertTriangle, Smartphone, Info, QrCode
 } from 'lucide-react';
-import { nfcService, setUserStore } from '../../services/nfcService';
+import { QRCodeSVG } from 'qrcode.react';
+import { nfcService } from '../../services/nfcService';
 import { useUsers } from '../../context/UserContext';
 
 // ── Compatibility notice ──────────────────────────────────────────────────────
@@ -22,11 +24,13 @@ function CompatibilityBanner() {
       <AlertTriangle size={18} color="var(--color-accent)" style={{ flexShrink: 0, marginTop: 1 }} />
       <div>
         <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--color-accent)', marginBottom: 4 }}>
-          Escáner NFC — Requisitos del navegador
+          Escáner NFC — Requisitos del navegador y Conexión Segura
         </div>
         <div style={{ fontSize: 12.5, color: 'var(--color-text-muted)', lineHeight: 1.7 }}>
-          La API Web NFC requiere <strong>Chrome para Android</strong> (v89+) con NFC activado en el dispositivo.<br />
-          Para probarlo desde tu teléfono, ejecuta <code style={{ background: 'rgba(0,0,0,0.3)', padding: '1px 6px', borderRadius: 4 }}>npm run dev -- --host</code> y accede a la IP de red del servidor.
+          <p>1. <strong>Contexto Seguro:</strong> La API Web NFC <em>solo</em> funciona en sitios seguros (<strong>HTTPS</strong>) o en <strong>localhost</strong>. Si accedes por IP local sin HTTPS, el navegador bloqueará el sensor.</p>
+          <div style={{ marginTop: 6, padding: '6px 10px', background: 'rgba(0,0,0,0.15)', borderRadius: 6, fontSize: 11.5 }}>
+            💡 <strong>Tip para pruebas:</strong> Usa <code style={{ color: 'var(--color-secondary)' }}>npm run dev -- --host</code> y asegúrate de que el teléfono esté en la misma red WiFi. Si no carga el NFC, prueba usando un túnel local o configura Chrome para tratar tu IP de red como segura.
+          </div>
         </div>
       </div>
     </div>
@@ -88,14 +92,14 @@ function NFCNotSupported() {
         textAlign: 'left',
       }}>
         <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--color-primary)', marginBottom: 10 }}>
-          Cómo acceder desde tu teléfono Android:
+          Pasos críticos para que funcione en móvil:
         </div>
         {[
-          'En el servidor, ejecuta: npm run dev -- --host',
-          'Observa la IP de red que muestra Vite (ej. 192.168.1.x:5173)',
-          'En Chrome Android, entra a esa URL',
-          'Acepta el permiso de NFC cuando el navegador lo solicite',
-          'Acerca la tarjeta al sensor NFC del teléfono',
+          'Servidor: Ejecuta "npm run dev -- --host"',
+          'Conectividad: Teléfono y PC deben estar en la MISMA red WiFi',
+          'Seguridad: La Web NFC API requiere HTTPS o localhost. Si usas la IP local (192.x.x.x), Chrome puede marcarla como "No Segura" y DESACTIVAR el NFC automáticamente.',
+          'Permiso: Chrome te pedirá permiso explícito "Permitir que el sitio use NFC". Si no aparece, verifica la configuración de seguridad del sitio en el navegador.',
+          'Lectura: Acerca la tarjeta a la parte trasera (cerca de la cámara) de tu Android.',
         ].map((step, i) => (
           <div key={i} className="flex items-center gap-3" style={{ fontSize: 12.5, color: 'var(--color-text-muted)', marginBottom: 8 }}>
             <div style={{
@@ -107,6 +111,9 @@ function NFCNotSupported() {
             {step}
           </div>
         ))}
+        <div style={{ marginTop: 12, fontSize: 11, padding: '8px', border: '1px dashed var(--color-primary)', borderRadius: 6, color: 'var(--color-primary)' }}>
+          ⚠️ <strong>Importante:</strong> Si el botón de "Activar Escáner" no aparece tras seguir estos pasos, es probable que el navegador haya bloqueado la API por falta de un certificado SSL válido.
+        </div>
       </div>
     </div>
   );
@@ -122,23 +129,155 @@ export default function NFCScanner() {
   const [sessionLog, setSessionLog]     = useState([]);
   const [sessionStats, setSessionStats] = useState({ success: 0, failed: 0 });
   const [error, setError]               = useState(null);
+  const [qrLink, setQrLink]             = useState(null);
+  const [generatingQr, setGeneratingQr] = useState(false);
 
-  // Keep NFC service in sync with current user list
+  const [activities, setActivities] = useState([]);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+
+  // Configuration for current scan session
+  const [scanConfig, setScanConfig] = useState({
+    status: 'entrada',
+    poolName: 'Alberca Principal',
+    activityId: '',
+    activityType: '',
+    serviceName: 'Selecciona una actividad'
+  });
+
+  const pools = ['Alberca Principal', 'Alberca Recreativa', 'Alberca Infantil'];
+
+  // Fetch activities
   useEffect(() => {
-    setUserStore(users);
-  }, [users]);
+    const fetchActivities = async () => {
+      try {
+        const [schedRes, evRes] = await Promise.all([
+          axios.get(`http://${window.location.hostname}:3001/api/schedules`),
+          axios.get(`http://${window.location.hostname}:3001/api/events`)
+        ]);
+        
+        const all = [
+          ...schedRes.data.map(s => ({ ...s, type: 'schedule', icon: '🗓️' })),
+          ...evRes.data.map(e => ({ ...e, type: 'event', icon: '⭐' }))
+        ];
+        setActivities(all);
+        if (all.length > 0) {
+          setScanConfig(c => ({
+            ...c, 
+            activityId: all[0].id, 
+            activityType: all[0].type,
+            serviceName: all[0].title
+          }));
+        }
+      } catch (err) {
+        console.error('Error fetching activities for scanner:', err);
+      } finally {
+        setLoadingActivities(false);
+      }
+    };
+    fetchActivities();
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => () => nfcService.stopScan(), []);
 
+  const playTone = (type) => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      if (type === 'success') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.15);
+      } else {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(300, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(150, ctx.currentTime + 0.3);
+        gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+      }
+    } catch(e) {}
+  };
+
   const handleScan = (result) => {
     setLastScan(result);
     setError(null);
+    setQrLink(null);
     setSessionLog(prev => [{ ...result, id: Date.now() }, ...prev].slice(0, 100));
     setSessionStats(prev => ({
       success: prev.success + (result.success ? 1 : 0),
       failed:  prev.failed  + (result.success ? 0 : 1),
     }));
+    playTone(result.success ? 'success' : 'error');
+  };
+
+  const handleExpressRenew = async () => {
+    if (!lastScan || !lastScan.userId) return;
+    setGeneratingQr(true);
+    try {
+      const price = lastScan.membership?.toLowerCase() === 'anual' ? 3200 : (lastScan.membership?.toLowerCase() === 'diario' ? 50 : 350);
+      const API_URL = `http://${window.location.hostname}:3001/api`;
+      const res = await axios.post(`${API_URL}/create-preference`, {
+        title: `Renovación Exprés ${lastScan.membership || 'Mensual'} - ${lastScan.userName}`,
+        price: price,
+        quantity: 1,
+        userId: lastScan.userId
+      });
+      setQrLink(res.data.init_point);
+    } catch (err) {
+      console.error(err);
+      setError('Error generando QR de renovación');
+    } finally {
+      setGeneratingQr(false);
+    }
+  };
+
+  // ── PAYMENT POLLING ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!qrLink || !lastScan || !lastScan.userId) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await axios.get(`http://${window.location.hostname}:3001/api/payments/check/${lastScan.userId}`);
+        if (res.data && res.data.paid) {
+          playTone('success');
+          alert(`¡${lastScan.userName} ha pagado exitosamente! Por favor pídale que vuelva a acercar la tarjeta para ingresar en Verde.`);
+          clearInterval(interval);
+          setQrLink(null);
+          setLastScan(null); // Reseteamos la lectura vencida
+        }
+      } catch (err) {}
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [qrLink, lastScan]);
+
+  const registerAttendance = async () => {
+    if (!lastScan || !lastScan.success) return;
+    try {
+      const API_URL = `http://${window.location.hostname}:3001/api`;
+      await axios.post(`${API_URL}/attendance`, {
+        userId: lastScan.userId,
+        userName: lastScan.userName,
+        nfcCard: lastScan.nfcCard,
+        serviceName: scanConfig.serviceName || lastScan.membership || 'Nado Libre',
+        poolName: scanConfig.poolName || 'Alberca Principal',
+        status: scanConfig.status
+      });
+      // Limpiar al terminar
+      setLastScan(null);
+      playTone('success');
+    } catch(err) {
+      console.error(err);
+      setError('No se pudo registrar la entrada en la base de datos');
+    }
   };
 
   const handleError = (msg) => {
@@ -149,7 +288,7 @@ export default function NFCScanner() {
   const startScanning = async () => {
     setError(null);
     setScanning(true);
-    await nfcService.startScan(handleScan, handleError);
+    await nfcService.startScan(handleScan, handleError, scanConfig);
   };
 
   const stopScanning = () => {
@@ -157,6 +296,7 @@ export default function NFCScanner() {
     setScanning(false);
     setLastScan(null);
     setError(null);
+    setQrLink(null);
   };
 
   const clearLog = () => {
@@ -192,10 +332,85 @@ export default function NFCScanner() {
 
       <CompatibilityBanner />
 
-      <div className="grid-2" style={{ gap: 'var(--space-4)' }}>
+      <div className="grid-2" style={{ gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+        {/* ── Scan Configuration ── */}
+        <div className="card" style={{ padding: 'var(--space-5)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 'var(--space-4)' }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Clock size={18} color="var(--color-primary)" />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>Configuración de Sesión</div>
+          </div>
 
-        {/* ── Left: Scanner visual ── */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'var(--space-10)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            {/* Status Toggle */}
+            <div style={{ display: 'flex', background: 'var(--color-surface-hover)', borderRadius: 'var(--radius-md)', padding: 4 }}>
+              <button
+                style={{ flex: 1, padding: '8px 12px', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.2s', background: scanConfig.status === 'entrada' ? 'var(--color-primary)' : 'transparent', color: scanConfig.status === 'entrada' ? 'white' : 'var(--color-text-muted)' }}
+                onClick={() => setScanConfig(c => ({...c, status: 'entrada'}))}
+              >
+                Entrada
+              </button>
+              <button
+                style={{ flex: 1, padding: '8px 12px', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.2s', background: scanConfig.status === 'salida' ? 'var(--color-danger)' : 'transparent', color: scanConfig.status === 'salida' ? 'white' : 'var(--color-text-muted)' }}
+                onClick={() => setScanConfig(c => ({...c, status: 'salida'}))}
+              >
+                Salida
+              </button>
+            </div>
+
+            {/* Pool Selector */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-muted)' }}>Alberca</label>
+              <select
+                className="input"
+                style={{ height: 42, fontSize: 13 }}
+                value={scanConfig.poolName}
+                onChange={(e) => setScanConfig(c => ({...c, poolName: e.target.value}))}
+              >
+                {pools.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+
+            {/* Activity Selector */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-muted)' }}>Actividad / Clase</label>
+              <select
+                className="input"
+                style={{ height: 42, fontSize: 13 }}
+                value={`${scanConfig.activityId}|${scanConfig.activityType}`}
+                onChange={(e) => {
+                  const [id, type] = e.target.value.split('|');
+                  const act = activities.find(a => a.id === id && a.type === type);
+                  setScanConfig(c => ({
+                    ...c, 
+                    activityId: id, 
+                    activityType: type,
+                    serviceName: act?.title || '',
+                    poolName: act?.pool || c.poolName
+                  }));
+                }}
+              >
+                {loadingActivities ? (
+                  <option>Cargando actividades...</option>
+                ) : (
+                  activities.map(a => (
+                    <option key={`${a.id}-${a.type}`} value={`${a.id}|${a.type}`}>
+                      {a.icon} {a.title} ({a.type === 'schedule' ? 'Regular' : 'Evento'})
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+            
+            <div style={{ fontSize: 11, color: 'var(--color-text-muted)', background: 'rgba(0,0,0,0.15)', padding: '8px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Info size={12} /> Configura estos valores antes de activar el escáner.
+            </div>
+          </div>
+        </div>
+
+        {/* ── Scanner visual ── */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'var(--space-10)', justifyContent: 'center' }}>
 
           {/* Animated rings */}
           <div className="nfc-scanner-ring" style={{ marginBottom: 'var(--space-6)' }}>
@@ -336,19 +551,48 @@ export default function NFCScanner() {
                 </div>
               )}
 
-              {/* NDEF records (if any data on card) */}
-              {lastScan.rawRecords?.length > 0 && (
-                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--color-text-muted)' }}>
-                  <div style={{ fontWeight: 700, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Datos NDEF en la tarjeta:
+              {lastScan.validationData && (
+                <div style={{ marginTop: 12, padding: 12, borderRadius: 8, background: lastScan.validationData.statusIndicator === 'rojo' ? 'rgba(239,68,68,0.1)' : lastScan.validationData.statusIndicator === 'naranja' ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)', border: `2px solid ${lastScan.validationData.statusIndicator === 'rojo' ? '#ef4444' : lastScan.validationData.statusIndicator === 'naranja' ? '#f59e0b' : '#10b981'}` }}>
+                  <div style={{ fontSize: 24, fontWeight: 800, textAlign: 'center', color: lastScan.validationData.statusIndicator === 'rojo' ? '#ef4444' : lastScan.validationData.statusIndicator === 'naranja' ? '#f59e0b' : '#10b981' }}>
+                    {lastScan.validationData.daysRemaining === 0 ? 'MEMBRESÍA EXPIRADA' : `Vigencia: ${lastScan.validationData.daysRemaining} Días`}
                   </div>
-                  {lastScan.rawRecords.map((r, i) => (
-                    <div key={i} style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.2)', borderRadius: 4, padding: '2px 6px', marginBottom: 2 }}>
-                      [{r.recordType}] {r.decoded ?? '(binario)'}
-                    </div>
-                  ))}
+                  <div style={{ fontSize: 12, textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                    {lastScan.validationData.lastPaymentDate ? `Último cobro: ${new Date(lastScan.validationData.lastPaymentDate).toLocaleDateString()}` : 'No presenta historial de pagos válidos'}
+                  </div>
                 </div>
               )}
+
+              {lastScan.success ? (
+                <button className="btn btn-primary" onClick={registerAttendance} style={{ width: '100%', marginTop: 'var(--space-4)', justifyContent: 'center' }}>
+                  Autorizar y Registrar Asistencia ({scanConfig.status})
+                </button>
+              ) : (
+                <div style={{ marginTop: 'var(--space-4)' }}>
+                  {qrLink ? (
+                    <div style={{ background: 'var(--color-surface-hover)', padding: '1rem', borderRadius: 'var(--radius-lg)', textAlign: 'center' }}>
+                      <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-primary)' }}>Escanea para pagar la renovación</div>
+                      <div style={{ background: 'white', padding: 12, display: 'inline-block', borderRadius: 8 }}>
+                        <QRCodeSVG value={qrLink} size={140} level="M" />
+                      </div>
+                      <div style={{ marginTop: 8, fontSize: 11, color: 'var(--color-primary)', wordBreak: 'break-all' }}>
+                        <a href={qrLink} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{qrLink}</a>
+                      </div>
+                      <div style={{ marginTop: 6, fontSize: 11, color: 'var(--color-text-muted)' }}>Esperando confirmación... Vuelve a escanear al terminar.</div>
+                    </div>
+                  ) : (
+                    lastScan.userStatus !== 'desconocido' && lastScan.validationData?.daysRemaining === 0 ? (
+                      <button className="btn" style={{ width: '100%', justifyContent: 'center', background: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }} onClick={handleExpressRenew} disabled={generatingQr}>
+                        <QrCode size={18} /> {generatingQr ? 'Generando...' : 'Volver a Pagar (Generar QR)'}
+                      </button>
+                    ) : (
+                      <button className="btn btn-secondary" disabled style={{ width: '100%', justifyContent: 'center' }}>
+                        Ingreso Bloqueado
+                      </button>
+                    )
+                  )}
+                </div>
+              )}
+
             </div>
           )}
 

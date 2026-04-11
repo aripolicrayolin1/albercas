@@ -1,38 +1,37 @@
-// Mock Payment Gateway Service
-let transactionCount = 1000;
+import axios from 'axios';
 
-const PROCESSING_DELAY = 1500; // ms
+const API_URL = `http://${window.location.hostname}:3001/api`;
+const PROCESSING_DELAY = 1200; // ms
 
 export const paymentService = {
   processPayment: async ({ userId, userName, paymentTypeId, paymentTypeName, amount, method }) => {
     await new Promise(resolve => setTimeout(resolve, PROCESSING_DELAY));
 
-    // Simulate 95% success rate
-    const success = Math.random() > 0.05;
-    transactionCount++;
+    // Simulación de pasarela de pago (98% éxito)
+    const success = Math.random() > 0.02;
 
     if (success) {
-      const reference = `REF-${new Date().getFullYear()}-${transactionCount}`;
-      return {
-        success: true,
-        transaction: {
-          id: `p${Date.now()}`,
-          userId,
-          userName,
-          type: paymentTypeName,
-          amount,
-          method,
-          status: 'completado',
-          date: new Date().toISOString().split('T')[0],
-          reference,
-          timestamp: new Date().toISOString(),
-        },
+      const transaction = {
+        id: `p${Date.now()}`,
+        userId,
+        userName,
+        type: paymentTypeName,
+        amount,
+        method,
+        status: 'completado',
+        date: new Date().toISOString().split('T')[0],
+        reference: `REF-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
       };
+
+      try {
+        // PERISTENCIA REAL EN LA BASE DE DATOS
+        await axios.post(`${API_URL}/payments`, transaction);
+        return { success: true, transaction };
+      } catch (err) {
+        return { success: false, error: 'Error al persistir el pago en el servidor municipal.' };
+      }
     } else {
-      return {
-        success: false,
-        error: 'Pago declinado. Verifique los datos del método de pago.',
-      };
+      return { success: false, error: 'Pago declinado por la red bancaria.' };
     }
   },
 

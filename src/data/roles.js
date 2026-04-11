@@ -115,6 +115,7 @@ export const SIDEBAR_MENUS = {
     { label: 'Ingresos', path: '/revenue', icon: 'BarChart3' },
     { label: 'Analítica IA', path: '/analytics', icon: 'Brain' },
     { label: 'Configuración de Color', path: '/settings/colors', icon: 'Palette' },
+    { label: 'Mi Perfil', path: '/profile', icon: 'User' },
   ],
   admin: [
     { label: 'Panel Principal', path: '/dashboard', icon: 'LayoutDashboard' },
@@ -125,6 +126,7 @@ export const SIDEBAR_MENUS = {
     { label: 'Pagos', path: '/payments', icon: 'CreditCard' },
     { label: 'Ingresos', path: '/revenue', icon: 'BarChart3' },
     { label: 'Analítica IA', path: '/analytics', icon: 'Brain' },
+    { label: 'Mi Perfil', path: '/profile', icon: 'User' },
   ],
   support: [
     { label: 'Panel Principal', path: '/dashboard', icon: 'LayoutDashboard' },
@@ -132,6 +134,7 @@ export const SIDEBAR_MENUS = {
     { label: 'Usuarios', path: '/users', icon: 'Users' },
     { label: 'Horarios', path: '/schedule', icon: 'Calendar' },
     { label: 'Ayuda', path: '/help', icon: 'HelpCircle' },
+    { label: 'Mi Perfil', path: '/profile', icon: 'User' },
   ],
   user: [
     { label: 'Mi Panel', path: '/dashboard', icon: 'LayoutDashboard' },

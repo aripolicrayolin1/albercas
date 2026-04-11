@@ -15,78 +15,15 @@
  * or via a tunneling tool like ngrok.
  */
 
-const STORAGE_KEY = 'app_users';
+import axios from 'axios';
 
-let _injectedUsers = null;
+const API_URL = `http://${window.location.hostname}:3001/api`;
+
 let _abortController = null;
 let _reader = null;
 
-// ── User store sync ──────────────────────────────────────────────────────────
+// ── Result builder (Ahora asíncrono para consultar al servidor) ──────────────
 
-export function setUserStore(users) {
-  _injectedUsers = users;
-}
-
-function getUsers() {
-  if (_injectedUsers) return _injectedUsers;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (_) {}
-  return [];
-}
-
-// ── Result builder ───────────────────────────────────────────────────────────
-
-function buildScanResult(serialNumber, records = []) {
-  const users = getUsers();
-  const normalizedSerial = serialNumber?.toLowerCase?.() ?? serialNumber;
-  const user = users.find(u =>
-    u.nfcCard?.toLowerCase?.() === normalizedSerial
-  );
-
-  const now = new Date();
-  const scanTime = now.toLocaleTimeString('es-MX', {
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-  });
-  const scanDate = now.toLocaleDateString('es-MX', {
-    year: 'numeric', month: 'long', day: 'numeric',
-  });
-
-  if (!user) {
-    return {
-      nfcCard: serialNumber,
-      userId: null,
-      userName: 'Tarjeta No Registrada',
-      membership: null,
-      userStatus: 'desconocido',
-      photoInitials: '?',
-      scanTime,
-      scanDate,
-      success: false,
-      errorMessage: `El número de serie ${serialNumber} no está vinculado a ningún usuario del sistema.`,
-      rawRecords: records,
-    };
-  }
-
-  const active = user.status === 'activo';
-
-  return {
-    nfcCard: serialNumber,
-    userId: user.id,
-    userName: user.name,
-    membership: user.membership,
-    userStatus: user.status,
-    photoInitials: user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
-    scanTime,
-    scanDate,
-    success: active,
-    errorMessage: active
-      ? null
-      : 'Membresía inactiva. El usuario requiere renovación para poder ingresar.',
-    rawRecords: records,
-  };
-}
 
 // ── NDEF record decoder ──────────────────────────────────────────────────────
 
@@ -124,11 +61,11 @@ export const nfcService = {
 
   /**
    * Begin scanning for NFC tags.
-   * @param {(result: ScanResult) => void} onScan  - called on each tag read
-   * @param {(error: string) => void}      onError - called on permission/read errors
-   * @returns {Promise<void>}
+   * @param {(result: ScanResult) => void} onScan     - called on each tag read
+   * @param {(error: string) => void}      onError    - called on permission/read errors
+   * @param {object}                       scanConfig - { status, poolName, serviceName }
    */
-  async startScan(onScan, onError) {
+  async startScan(onScan, onError, scanConfig = {}) {
     if (!this.isSupported()) {
       onError?.('Web NFC no está disponible en este navegador. Usa Chrome en Android.');
       return;
@@ -138,9 +75,10 @@ export const nfcService = {
       _abortController = new AbortController();
       _reader = new NDEFReader();
 
-      _reader.addEventListener('reading', ({ serialNumber, message }) => {
+      _reader.addEventListener('reading', async ({ serialNumber, message }) => {
         const records = decodeRecords(message);
-        onScan(buildScanResult(serialNumber, records));
+        const result = await processScanResult(serialNumber, records, scanConfig);
+        onScan(result);
       });
 
       _reader.addEventListener('readingerror', (event) => {
@@ -173,10 +111,6 @@ export const nfcService = {
 
   /**
    * Read a single NFC tag (used during user registration).
-   * Returns a Promise that resolves with the tag's serial number.
-   * Automatically stops listening after the first successful read.
-   *
-   * @returns {Promise<string>} Serial number of the tapped card
    */
   readOneCard() {
     if (!this.isSupported()) {
@@ -219,3 +153,56 @@ export const nfcService = {
     return _abortController !== null && !_abortController.signal.aborted;
   },
 };
+
+// ── Result builder (Asíncrono) ────────────────────────────────────────────────
+
+async function processScanResult(serialNumber, records = [], scanConfig = {}) {
+  const now = new Date();
+  const scanTime = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const scanDate = now.toISOString().split('T')[0];
+
+  try {
+    // 1. Validar usuario en el servidor pasando actividad seleccionada
+    const { activityId, activityType } = scanConfig;
+    const query = (activityId && activityType) ? `?activityId=${activityId}&activityType=${activityType}` : '';
+    const res = await axios.get(`${API_URL}/users/validate/${serialNumber}${query}`);
+    const validation = res.data; 
+    // validation = { user, lastPaymentDate, daysRemaining, statusIndicator, errorMessage }
+
+    return {
+      nfcCard: serialNumber,
+      userId: validation.user.id,
+      userName: validation.user.name,
+      membership: validation.user.membership,
+      userStatus: validation.user.status,
+      photoInitials: validation.user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+      scanTime,
+      scanDate,
+      success: validation.statusIndicator !== 'rojo',
+      errorMessage: validation.errorMessage, // Usar el error que viene del backend
+      rawRecords: records,
+      status: scanConfig.status || 'entrada',
+      validationData: validation
+    };
+  } catch (err) {
+    const is404 = err.response?.status === 404;
+    return {
+      nfcCard: serialNumber,
+      userId: null,
+      userName: is404 ? 'ID no registrado' : 'Error de Conexión',
+      membership: null,
+      userStatus: is404 ? 'desconocido' : 'error',
+      photoInitials: '?',
+      scanTime,
+      scanDate,
+      success: false,
+      errorMessage: is404 
+        ? `La tarjeta ${serialNumber} no existe.`
+        : 'Error al contactar el servidor para validación.',
+      rawRecords: records,
+      status: scanConfig.status || 'entrada',
+      validationData: null
+    };
+  }
+}
+

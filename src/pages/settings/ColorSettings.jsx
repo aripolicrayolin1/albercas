@@ -2,17 +2,37 @@ import React, { useState } from 'react';
 import { Palette, RotateCcw, Check, Eye } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
-const COLOR_FIELDS = [
-  { key: 'colorBase', label: 'Color Base (Fondo)', description: 'Color principal del fondo de la aplicación' },
-  { key: 'colorSurface', label: 'Color de Superficie', description: 'Fondo de tarjetas y paneles' },
-  { key: 'colorPrimary', label: 'Color Primario', description: 'Botones principales, textos destacados, acentos' },
-  { key: 'colorSecondary', label: 'Color Secundario', description: 'Acentos y elementos complementarios' },
-  { key: 'colorAccent', label: 'Color de Acento', description: 'Advertencias, destacados, badges' },
-  { key: 'colorSuccess', label: 'Color de Éxito', description: 'Confirmaciones, estados activos' },
-  { key: 'colorDanger', label: 'Color de Peligro', description: 'Errores, alertas críticas, eliminaciones' },
-  { key: 'colorText', label: 'Color de Texto', description: 'Texto principal del sistema' },
-  { key: 'colorTextMuted', label: 'Texto Secundario', description: 'Texto de apoyo, subtítulos, placeholders' },
-  { key: 'colorBorder', label: 'Color de Bordes', description: 'Líneas divisorias y bordes de componentes' },
+const COLOR_GROUPS = [
+  {
+    title: 'Superficie y Fondo',
+    fields: [
+      { key: 'colorBase', label: 'Fondo Base', description: 'Color principal del fondo de la aplicación' },
+      { key: 'colorSurface', label: 'Superficie', description: 'Fondo de tarjetas, paneles y modales' },
+      { key: 'colorBorder', label: 'Bordes', description: 'Líneas divisorias y bordes de componentes' },
+    ]
+  },
+  {
+    title: 'Identidad y Acentos',
+    fields: [
+      { key: 'colorPrimary', label: 'Primario', description: 'Botones principales y elementos destacados' },
+      { key: 'colorSecondary', label: 'Secundario', description: 'Acentos y elementos complementarios' },
+      { key: 'colorAccent', label: 'Destacado', description: 'Elementos de atención especial' },
+    ]
+  },
+  {
+    title: 'Estados y Feedback',
+    fields: [
+      { key: 'colorSuccess', label: 'Éxito', description: 'Confirmaciones y estados activos' },
+      { key: 'colorDanger', label: 'Peligro', description: 'Errores y alertas críticas' },
+    ]
+  },
+  {
+    title: 'Tipografía',
+    fields: [
+      { key: 'colorText', label: 'Texto Principal', description: 'Color de lectura primario' },
+      { key: 'colorTextMuted', label: 'Texto Secundario', description: 'Subtítulos y texto de apoyo' },
+    ]
+  }
 ];
 
 const PRESETS = [
@@ -114,45 +134,45 @@ export default function ColorSettings() {
         </div>
       </div>
 
-      {/* Color pickers */}
-      <div className="card">
-        <div className="card-title mb-2">Colores Personalizados</div>
-        <div style={{ color: 'var(--color-text-muted)', fontSize: 13, marginBottom: 'var(--space-5)' }}>
-          Los cambios se aplican en tiempo real a toda la interfaz.
-        </div>
-
-        {COLOR_FIELDS.map(field => (
-          <div key={field.key} className="color-picker-row" id={`color-field-${field.key}`}>
-            <div style={{ position: 'relative' }}>
-              <label htmlFor={`color-input-${field.key}`} className="color-swatch" style={{ background: theme[field.key] }} />
-              <input
-                id={`color-input-${field.key}`}
-                type="color"
-                value={theme[field.key]}
-                onChange={e => handleColorChange(field.key, e.target.value)}
-                style={{
-                  position: 'absolute', inset: 0,
-                  opacity: 0, cursor: 'pointer', width: '100%', height: '100%',
-                }}
-                aria-label={field.label}
-              />
+      {/* Color pickers: Categorized */}
+      <div className="grid-2" style={{ gap: 'var(--space-5)', alignItems: 'start' }}>
+        {COLOR_GROUPS.map(group => (
+          <div key={group.title} className="card">
+            <div className="card-title mb-4" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-primary)' }}>
+              {group.title}
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{field.label}</div>
-              <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{field.description}</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <code style={{
-                fontSize: 12,
-                background: 'var(--color-base)',
-                padding: '3px 8px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--color-border)',
-                color: 'var(--color-text-muted)',
-                fontFamily: 'monospace',
-              }}>
-                {theme[field.key]}
-              </code>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              {group.fields.map(field => (
+                <div key={field.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ position: 'relative', width: 42, height: 42, flexShrink: 0 }}>
+                    <div 
+                      style={{ 
+                        width: '100%', height: '100%', borderRadius: 'var(--radius-md)', 
+                        background: theme[field.key], border: '2px solid var(--color-border)',
+                        boxShadow: 'var(--shadow-sm)'
+                      }} 
+                    />
+                    <input
+                      type="color"
+                      value={theme[field.key]}
+                      onChange={e => handleColorChange(field.key, e.target.value)}
+                      style={{
+                        position: 'absolute', inset: 0,
+                        opacity: 0, cursor: 'pointer', width: '100%', height: '100%',
+                      }}
+                      aria-label={field.label}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13.5 }}>{field.label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)', lineHeight: 1.4 }}>{field.description}</div>
+                  </div>
+                  <div style={{ fontFamily: 'monospace', fontSize: 10, background: 'var(--color-base)', padding: '2px 6px', borderRadius: 4, border: '1px solid var(--color-border)' }}>
+                    {theme[field.key].toUpperCase()}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ))}

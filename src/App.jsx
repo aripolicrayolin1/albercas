@@ -19,7 +19,8 @@ import AttendanceLog from './pages/attendance/AttendanceLog';
 
 // Users
 import UserList from './pages/users/UserList';
-import UserForm from './pages/users/UserForm';   // ← NEW
+import UserForm from './pages/users/UserForm';
+import Profile from './pages/users/Profile';
 
 // Schedule
 import ScheduleManager from './pages/schedule/ScheduleManager';
@@ -43,8 +44,14 @@ import './index.css';
 function AppRouter() {
   const { user, loading } = useAuth();
   const [currentPath, setCurrentPath] = useState('/dashboard');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  const navigate = (path) => setCurrentPath(path);
+  const navigate = (path) => {
+    setCurrentPath(path);
+    setMobileSidebarOpen(false); // Close sidebar on mobile after navigation
+  };
+
+  const toggleMobileSidebar = () => setMobileSidebarOpen(!mobileSidebarOpen);
 
   if (loading) {
     return (
@@ -118,6 +125,9 @@ function AppRouter() {
         return <AttendanceAnalytics />;
     }
 
+    // ── Profile ───────────────────────────────────────────────────────────
+    if (currentPath === '/profile') return <Profile />;
+
     // ── Color Settings (superadmin only) ───────────────────────────────────
     if (currentPath === '/settings/colors') {
       if (role === 'superadmin') return <ColorSettings />;
@@ -139,7 +149,12 @@ function AppRouter() {
   };
 
   return (
-    <DashboardLayout currentPath={currentPath} onNavigate={navigate}>
+    <DashboardLayout 
+      currentPath={currentPath} 
+      onNavigate={navigate}
+      mobileSidebarOpen={mobileSidebarOpen}
+      toggleMobileSidebar={toggleMobileSidebar}
+    >
       {renderPage()}
     </DashboardLayout>
   );

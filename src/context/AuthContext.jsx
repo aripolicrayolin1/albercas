@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 import { mockUsers } from '../data/mockData';
 import { DEMO_ACCOUNTS } from '../data/roles';
 
@@ -16,19 +17,27 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const login = (email, password) => {
-    const account = DEMO_ACCOUNTS.find(a => a.email === email && a.password === password);
-    if (!account) return { success: false, error: 'Credenciales incorrectas' };
-    const userData = mockUsers.find(u => u.id === account.userId);
-    if (!userData) return { success: false, error: 'Usuario no encontrado' };
-    const sessionUser = { ...userData, role: account.role };
-    setUser(sessionUser);
-    localStorage.setItem('auth_user', JSON.stringify(sessionUser));
-    return { success: true };
+  const login = async (email, password) => {
+    try {
+      const res = await axios.post(`http://${window.location.hostname}:3001/api/auth/login`, { email, password });
+      const { token, user } = res.data;
+      
+      setUser(user);
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_user', JSON.stringify(user));
+      
+      return { success: true };
+    } catch (err) {
+      return { 
+        success: false, 
+        error: err.response?.data?.error || 'Error al iniciar sesión' 
+      };
+    }
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
   };
 

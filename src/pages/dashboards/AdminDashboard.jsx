@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserCheck, CreditCard, Calendar, Activity, Wifi, ClipboardList } from 'lucide-react';
-import { mockStats, mockAttendance, mockPayments } from '../../data/mockData';
+import axios from 'axios';
 
 function StatCard({ icon: Icon, label, value, change, color, bg }) {
   return (
@@ -16,13 +16,47 @@ function StatCard({ icon: Icon, label, value, change, color, bg }) {
 }
 
 export default function AdminDashboard({ onNavigate }) {
+  const [stats, setStats] = useState(null);
+  const [attendance, setAttendance] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const API_URL = `http://${window.location.hostname}:3001/api`;
+        const [statsRes, attendanceRes, paymentsRes] = await Promise.all([
+          axios.get(`${API_URL}/stats`),
+          axios.get(`${API_URL}/attendance`),
+          axios.get(`${API_URL}/payments`)
+        ]);
+        setStats(statsRes.data);
+        setAttendance(attendanceRes.data);
+        setPayments(paymentsRes.data);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading || !stats) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+        <div className="loader" style={{ width: 40, height: 40 }} />
+      </div>
+    );
+  }
+
   return (
     <div className="animate-fade-in">
       <div className="stat-grid mb-6">
-        <StatCard icon={UserCheck} label="Asistencia Hoy" value={mockStats.todayAttendance} change="+8% vs ayer" color="#10b981" bg="rgba(16,185,129,0.12)" />
-        <StatCard icon={CreditCard} label="Ingresos del Mes" value={`$${mockStats.monthlyRevenue.toLocaleString()}`} change="+12%" color="#f59e0b" bg="rgba(245,158,11,0.12)" />
-        <StatCard icon={Activity} label="Ocupación" value={`${mockStats.averageOccupancy}%`} color="#22d3ee" bg="rgba(34,211,238,0.12)" />
-        <StatCard icon={Calendar} label="Eventos Próximos" value={mockStats.upcomingEvents} color="#8b5cf6" bg="rgba(139,92,246,0.12)" />
+        <StatCard icon={UserCheck} label="Asistencia Hoy" value={stats.todayAttendance} change="" color="#10b981" bg="rgba(16,185,129,0.12)" />
+        <StatCard icon={CreditCard} label="Ingresos del Mes" value={`$${stats.monthlyRevenue.toLocaleString()}`} change="" color="#f59e0b" bg="rgba(245,158,11,0.12)" />
+        <StatCard icon={Activity} label="Ocupación" value={`${stats.averageOccupancy}%`} color="#22d3ee" bg="rgba(34,211,238,0.12)" />
+        <StatCard icon={Calendar} label="Eventos Próximos" value={stats.upcomingEvents} color="#8b5cf6" bg="rgba(139,92,246,0.12)" />
       </div>
 
       <div className="grid-2" style={{ gap: 'var(--space-4)' }}>
@@ -31,15 +65,19 @@ export default function AdminDashboard({ onNavigate }) {
             <div className="card-title">Asistencia Reciente</div>
             <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('/attendance')}>Ver todo</button>
           </div>
-          {mockAttendance.slice(0, 6).map(a => (
-            <div key={a.id} className="flex items-center justify-between" style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid rgba(51,65,85,0.4)' }}>
+          {attendance.length === 0 ? (
+            <div style={{ padding: 'var(--space-4) 0', color: 'var(--color-text-muted)', fontSize: 13, textAlign: 'center' }}>
+              Sin registros de asistencia hoy
+            </div>
+          ) : attendance.slice(0, 6).map((a, idx) => (
+            <div key={idx} className="flex items-center justify-between" style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid rgba(51,65,85,0.4)' }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>{a.userName}</div>
-                <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{a.pool} · {a.service}</div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{a.user_name || a.userName}</div>
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{a.pool_name || a.pool} · {a.service_name || a.service}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <span className={`badge ${a.status === 'entrada' ? 'badge-success' : 'badge-danger'}`}>{a.status}</span>
-                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>{a.time}</div>
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>{a.scan_time || a.time}</div>
               </div>
             </div>
           ))}
@@ -53,14 +91,18 @@ export default function AdminDashboard({ onNavigate }) {
             <div className="card-title">Pagos Recientes</div>
             <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('/payments/history')}>Ver todo</button>
           </div>
-          {mockPayments.slice(0, 6).map(p => (
-            <div key={p.id} className="flex items-center justify-between" style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid rgba(51,65,85,0.4)' }}>
+          {payments.length === 0 ? (
+            <div style={{ padding: 'var(--space-4) 0', color: 'var(--color-text-muted)', fontSize: 13, textAlign: 'center' }}>
+              Sin pagos recientes
+            </div>
+          ) : payments.slice(0, 6).map((p, idx) => (
+            <div key={idx} className="flex items-center justify-between" style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid rgba(51,65,85,0.4)' }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>{p.userName}</div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{p.user_name || p.userName}</div>
                 <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{p.type}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-success)' }}>${p.amount.toLocaleString()}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-success)' }}>${Number(p.amount).toLocaleString()}</div>
                 <span className={`badge ${p.status === 'completado' ? 'badge-success' : 'badge-warning'}`} style={{ marginTop: 2 }}>{p.status}</span>
               </div>
             </div>

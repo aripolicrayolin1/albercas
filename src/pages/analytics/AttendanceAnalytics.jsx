@@ -120,8 +120,10 @@ export default function AttendanceAnalytics() {
             </div>
             <TrendingUp size={16} color="var(--color-text-muted)" />
           </div>
-          <div className="chart-container">
-            <Bar data={hourlyData} options={CHART_OPTS} />
+          <div className="chart-container-responsive">
+            <div className="chart-container">
+              <Bar data={hourlyData} options={CHART_OPTS} />
+            </div>
           </div>
         </div>
         <div className="card">
@@ -131,8 +133,10 @@ export default function AttendanceAnalytics() {
               <div className="card-subtitle">Promedio por día de semana</div>
             </div>
           </div>
-          <div className="chart-container">
-            <Bar data={weeklyData} options={CHART_OPTS} />
+          <div className="chart-container-responsive">
+            <div className="chart-container">
+              <Bar data={weeklyData} options={CHART_OPTS} />
+            </div>
           </div>
         </div>
       </div>
