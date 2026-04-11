@@ -1,0 +1,8 @@
+{
+  "appId": "com.municipal.pool",
+  "appName": "Municipal Pool System",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

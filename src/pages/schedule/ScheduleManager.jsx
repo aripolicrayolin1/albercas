@@ -211,7 +211,7 @@ export default function ScheduleManager() {
                         {s.category}
                       </span>
                     </td>
-                    {['superadmin', 'admin', 'support'].includes(user?.role) && (
+                    {['superadmin', 'admin', 'support'].includes(user?.role) ? (
                       <td>
                         <div className="flex gap-2">
                           <button 
