@@ -38,13 +38,23 @@ export default function ScheduleManager() {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
 
+  const [enrollments, setEnrollments] = useState([]);
+  
   const fetchData = async () => {
     try {
-      const [schedRes, evRes, usersRes] = await Promise.all([
-        axios.get(`http://${window.location.hostname}:3001/api/schedules`),
-        axios.get(`http://${window.location.hostname}:3001/api/events`),
-        axios.get(`http://${window.location.hostname}:3001/api/users`)
-      ]);
+      const hostname = window.location.hostname;
+      const apiBase = `http://${hostname}:3001/api`;
+      const requests = [
+        axios.get(`${apiBase}/schedules`),
+        axios.get(`${apiBase}/events`),
+        axios.get(`${apiBase}/users`)
+      ];
+      
+      if (user && user.role === 'user') {
+        requests.push(axios.get(`${apiBase}/users/${user.id}/enrollments`));
+      }
+
+      const [schedRes, evRes, usersRes, enRes] = await Promise.all(requests);
       
       const mappedSchedules = schedRes.data.map(s => ({
         ...s,
@@ -53,12 +63,27 @@ export default function ScheduleManager() {
       
       setSchedule(mappedSchedules);
       setEvents(evRes.data);
+      if (enRes) setEnrollments(enRes.data);
       
-      // Filter roles != 'user'
       const filteredInstructors = usersRes.data.filter(u => u.status === 'activo' && u.role !== 'user');
       setInstructors(filteredInstructors);
     } catch (err) {
       console.error('Error fetching schedule data:', err);
+    }
+  };
+
+  const handleEnroll = async (activityId, activityType) => {
+    try {
+      const hostname = window.location.hostname;
+      await axios.post(`http://${hostname}:3001/api/enroll`, {
+        userId: user.id,
+        activityId,
+        activityType
+      });
+      alert('¡Inscripción exitosa!');
+      fetchData(); // Refresh to show "Ya inscrito"
+    } catch (err) {
+      alert(err.response?.data?.error || 'Error al inscribirse');
     }
   };
 
@@ -149,7 +174,7 @@ export default function ScheduleManager() {
                   <th>Capacidad</th>
                   <th>Instructor</th>
                   <th>Categoría</th>
-                  {['superadmin', 'admin', 'support'].includes(user?.role) && <th>Acciones</th>}
+                  {['superadmin', 'admin', 'support'].includes(user?.role) ? <th>Acciones</th> : <th>Inscripción</th>}
                 </tr>
               </thead>
               <tbody>
@@ -206,6 +231,14 @@ export default function ScheduleManager() {
                           }} id={`edit-schedule-${s.id}`}><Edit size={14} /></button>
                           <button className="btn btn-ghost" style={{ color: 'var(--color-danger)' }} onClick={() => handleDeleteSchedule(s.id)} id={`delete-schedule-${s.id}`}><Trash2 size={14} /></button>
                         </div>
+                      </td>
+                    ) : (
+                      <td>
+                        {enrollments.some(en => en.activity_id === s.id && en.activity_type === 'schedule') ? (
+                          <div className="badge badge-success">Inscrito</div>
+                        ) : (
+                          <button className="btn btn-primary btn-sm" onClick={() => handleEnroll(s.id, 'schedule')}>Inscribirme</button>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -281,6 +314,21 @@ export default function ScheduleManager() {
                 >
                   <Users size={14} /> Ver Inscritos
                 </button>
+                {user?.role === 'user' && (
+                  <div className="mt-3">
+                    {enrollments.some(en => en.activity_id === e.id && en.activity_type === 'event') ? (
+                       <button className="btn btn-success btn-sm w-full" disabled>Inscrito</button>
+                    ) : (
+                       <button 
+                         className="btn btn-primary btn-sm w-full" 
+                         disabled={e.registered >= e.capacity}
+                         onClick={() => handleEnroll(e.id, 'event')}
+                       >
+                         {e.registered >= e.capacity ? 'Evento Lleno' : 'Reservar Lugar'}
+                       </button>
+                    )}
+                  </div>
+                )}
               </div>
           )})}
         </div>

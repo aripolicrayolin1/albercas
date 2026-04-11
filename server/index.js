@@ -55,6 +55,7 @@ app.post('/api/auth/login', async (req, res) => {
         nfcCard: user.nfc_card,
         membership: user.membership,
         status: user.status,
+        phone: user.phone,
         services: user.services ? user.services.split(',') : [],
         avatar: user.avatar
       }
@@ -194,6 +195,59 @@ app.put('/api/users/:id/change-password', async (req, res) => {
     
     await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [hash, req.params.id]);
     
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── ENROLLMENTS FOR USER ─────────────────────────────────────
+app.get('/api/users/:id/enrollments', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT e.*, 
+        CASE 
+          WHEN e.activity_type = 'schedule' THEN s.title 
+          WHEN e.activity_type = 'event' THEN ev.title 
+        END as title,
+        CASE 
+          WHEN e.activity_type = 'schedule' THEN CONCAT(s.start_time, ' - ', s.end_time)
+          WHEN e.activity_type = 'event' THEN CONCAT(DATE_FORMAT(ev.event_date, '%d/%m'), ' ', ev.event_time)
+        END as time
+      FROM enrollments e
+      LEFT JOIN schedules s ON e.activity_id = s.id AND e.activity_type = 'schedule'
+      LEFT JOIN events ev ON e.activity_id = ev.id AND e.activity_type = 'event'
+      WHERE e.user_id = ?
+    `, [req.params.id]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── PROFILE UPDATE (BASIC DATA) ──────────────────────────────────
+app.put('/api/users/:id/profile', async (req, res) => {
+  const { name, phone, avatar } = req.body;
+  try {
+    await db.query(`
+      UPDATE users SET name = ?, phone = ?, avatar = ? WHERE id = ?
+    `, [name, phone, avatar, req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/enroll', async (req, res) => {
+  const { userId, activityId, activityType } = req.body;
+  try {
+    const [existing] = await db.query('SELECT * FROM enrollments WHERE user_id = ? AND activity_id = ? AND activity_type = ?', [userId, activityId, activityType]);
+    if (existing.length > 0) return res.status(400).json({ error: 'Ya estás inscrito' });
+
+    await db.query('INSERT INTO enrollments (user_id, activity_id, activity_type) VALUES (?, ?, ?)', [userId, activityId, activityType]);
+    if (activityType === 'event') {
+      await db.query('UPDATE events SET registered = registered + 1 WHERE id = ?', [activityId]);
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -730,13 +784,146 @@ app.get('/api/stats', async (req, res) => {
 
 app.get('/api/stats/revenue-chart', async (req, res) => {
   try {
-    // Para simplificar, mockeamos meses pero rellenamos con la db, lo óptimo sería un GROUP BY MONTH(date) 
-    res.json({
-      labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
-      data: [15000, 22000, 18000, 25000, 32000, 38000]
-    });
+    const [rows] = await db.query(`
+      SELECT MONTH(date) as month, SUM(amount) as total
+      FROM payments
+      WHERE status = 'completado' AND YEAR(date) = YEAR(CURDATE())
+      GROUP BY MONTH(date)
+      ORDER BY month ASC
+    `);
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const labels = rows.map(r => monthNames[r.month - 1]);
+    const data = rows.map(r => r.total || 0);
+    res.json({ labels: labels.length > 0 ? labels : ['Sin datos'], data: data.length > 0 ? data : [0] });
   } catch(err) {
     res.status(500).json({error: err.message});
+  }
+});
+
+// ── ANALYTICS: datos reales de asistencia ─────────────────────────
+app.get('/api/analytics/attendance-by-hour', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT HOUR(scan_time) as hour, COUNT(*) as count
+      FROM attendance
+      WHERE status = 'entrada'
+      GROUP BY HOUR(scan_time)
+      ORDER BY hour ASC
+    `);
+    const labels = [];
+    const data = [];
+    for (let h = 6; h <= 20; h++) {
+      const suffix = h < 12 ? 'am' : 'pm';
+      const display = h <= 12 ? h : h - 12;
+      labels.push(`${display}${suffix}`);
+      const found = rows.find(r => r.hour === h);
+      data.push(found ? found.count : 0);
+    }
+    res.json({ labels, data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/analytics/attendance-by-day', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT DAYOFWEEK(scan_date) as dow, COUNT(*) as count
+      FROM attendance
+      WHERE status = 'entrada'
+      GROUP BY DAYOFWEEK(scan_date)
+      ORDER BY dow ASC
+    `);
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    const dayMap = {};
+    rows.forEach(r => { dayMap[dayNames[r.dow - 1]] = r.count; });
+    const data = labels.map(l => dayMap[l] || 0);
+    res.json({ labels, data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── ANALYTICS: IA con Gemini real ─────────────────────────────────
+app.post('/api/analytics/generate-insights', async (req, res) => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY no configurada en .env' });
+  }
+
+  try {
+    // Recopilar datos reales de la DB
+    const [[{ totalUsers }]] = await db.query("SELECT COUNT(*) as totalUsers FROM users");
+    const [[{ activeUsers }]] = await db.query("SELECT COUNT(*) as activeUsers FROM users WHERE status='activo'");
+    const [membershipBreakdown] = await db.query("SELECT membership, COUNT(*) as count FROM users GROUP BY membership");
+    const [attendanceByHour] = await db.query("SELECT HOUR(scan_time) as hour, COUNT(*) as count FROM attendance WHERE status='entrada' GROUP BY HOUR(scan_time) ORDER BY hour");
+    const [attendanceByDay] = await db.query("SELECT DAYOFWEEK(scan_date) as dow, COUNT(*) as count FROM attendance WHERE status='entrada' GROUP BY DAYOFWEEK(scan_date) ORDER BY dow");
+    const [[{ totalAttendance }]] = await db.query("SELECT COUNT(*) as totalAttendance FROM attendance WHERE status='entrada'");
+    const [[{ thisMonthAtt }]] = await db.query("SELECT COUNT(*) as thisMonthAtt FROM attendance WHERE status='entrada' AND MONTH(scan_date)=MONTH(CURDATE()) AND YEAR(scan_date)=YEAR(CURDATE())");
+    const [revenueByMonth] = await db.query("SELECT MONTH(date) as month, SUM(amount) as total FROM payments WHERE status='completado' AND YEAR(date)=YEAR(CURDATE()) GROUP BY MONTH(date) ORDER BY month");
+    const [[{ totalRevenue }]] = await db.query("SELECT COALESCE(SUM(amount),0) as totalRevenue FROM payments WHERE status='completado'");
+    const [schedules] = await db.query("SELECT title, pool, capacity, instructor, category FROM schedules");
+
+    const prompt = `Eres un analista de datos de un sistema de gestión de albercas municipales en México. Analiza estos datos REALES y genera exactamente 4 insights accionables en español.
+
+DATOS DEL SISTEMA:
+- Total usuarios: ${totalUsers} (activos: ${activeUsers})
+- Desglose membresías: ${JSON.stringify(membershipBreakdown)}
+- Total asistencias registradas: ${totalAttendance}
+- Asistencias este mes: ${thisMonthAtt}
+- Asistencia por hora: ${JSON.stringify(attendanceByHour)}
+- Asistencia por día: ${JSON.stringify(attendanceByDay)}
+- Ingresos por mes este año: ${JSON.stringify(revenueByMonth)}
+- Ingresos totales: $${totalRevenue} MXN
+- Clases programadas: ${JSON.stringify(schedules)}
+
+Responde ÚNICAMENTE con un JSON array con exactamente 4 objetos. Cada objeto:
+{"type":"string_id","title":"Título corto","insight":"Análisis de 2-3 oraciones con datos concretos y recomendación accionable","severity":"info|success|warning|danger","metric":"Métrica clave"}
+
+IMPORTANTE: Usa los números reales. Si hay pocos datos indica que el sistema es nuevo. Responde SOLO el JSON array sin markdown ni backticks.`;
+
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+        }),
+      }
+    );
+
+    const geminiData = await geminiRes.json();
+    if (geminiData.error) {
+      console.error("Gemini API error:", geminiData.error);
+      return res.status(500).json({ error: 'Error Gemini: ' + (geminiData.error.message || 'Unknown') });
+    }
+
+    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+    let cleanText = rawText.trim();
+    if (cleanText.startsWith('```')) {
+      cleanText = cleanText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    }
+
+    let insights;
+    try {
+      insights = JSON.parse(cleanText);
+    } catch (parseErr) {
+      console.error("Error parsing Gemini response:", cleanText);
+      return res.status(500).json({ error: 'Formato de respuesta inválido. Intenta de nuevo.' });
+    }
+
+    res.json({
+      success: true,
+      insights,
+      generatedAt: new Date().toISOString(),
+      model: 'Gemini 2.0 Flash'
+    });
+  } catch (err) {
+    console.error("Error en análisis IA:", err);
+    res.status(500).json({ error: 'Error generando análisis: ' + err.message });
   }
 });
 
