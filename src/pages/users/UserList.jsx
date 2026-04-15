@@ -34,7 +34,7 @@ export default function UserList({ onNavigate }) {
   const handleResetPassword = async (u) => {
     if (window.confirm(`¿Seguro que deseas generar una nueva contraseña para ${u.name}?`)) {
       try {
-        const res = await axios.put((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/users/${u.id}/reset-password`);
+        const res = await axios.put((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/users/${u.id}/reset-password`);
         alert(`Nueva contraseña generada para ${u.name}: ${res.data.newPassword}\n\nPor favor, entrega esta clave al usuario.`);
       } catch (err) {
         alert('Error al resetear la contraseña');

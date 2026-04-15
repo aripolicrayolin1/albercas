@@ -151,8 +151,8 @@ export default function NFCScanner() {
     const fetchActivities = async () => {
       try {
         const [schedRes, evRes] = await Promise.all([
-          axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/schedules`),
-          axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/events`)
+          axios.get((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/schedules`),
+          axios.get((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/events`)
         ]);
         
         const all = [
@@ -225,7 +225,7 @@ export default function NFCScanner() {
     setGeneratingQr(true);
     try {
       const price = lastScan.membership?.toLowerCase() === 'anual' ? 3200 : (lastScan.membership?.toLowerCase() === 'diario' ? 50 : 350);
-      const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
+      const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + ``;
       const res = await axios.post(`${API_URL}/create-preference`, {
         title: `Renovación Exprés ${lastScan.membership || 'Mensual'} - ${lastScan.userName}`,
         price: price,
@@ -246,7 +246,7 @@ export default function NFCScanner() {
     if (!qrLink || !lastScan || !lastScan.userId) return;
     const interval = setInterval(async () => {
       try {
-        const res = await axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/payments/check/${lastScan.userId}`);
+        const res = await axios.get((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/payments/check/${lastScan.userId}`);
         if (res.data && res.data.paid) {
           playTone('success');
           alert(`¡${lastScan.userName} ha pagado exitosamente! Por favor pídale que vuelva a acercar la tarjeta para ingresar en Verde.`);
@@ -262,7 +262,7 @@ export default function NFCScanner() {
   const registerAttendance = async () => {
     if (!lastScan || !lastScan.success) return;
     try {
-      const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
+      const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + ``;
       await axios.post(`${API_URL}/attendance`, {
         userId: lastScan.userId,
         userName: lastScan.userName,

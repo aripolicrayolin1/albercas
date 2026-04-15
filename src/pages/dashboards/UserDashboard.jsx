@@ -29,7 +29,7 @@ export default function UserDashboard({ onNavigate }) {
     const fetchData = async () => {
       if (!user) return;
       try {
-        const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
+        const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + ``;
         const [pRes, eRes, enRes] = await Promise.all([
           axios.get(`${API_URL}/payments`),
           axios.get(`${API_URL}/events`),
@@ -52,7 +52,7 @@ export default function UserDashboard({ onNavigate }) {
     e.preventDefault();
     setProfileSaving(true);
     try {
-      await axios.put((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/users/${user.id}/profile`, profileData);
+      await axios.put((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/users/${user.id}/profile`, profileData);
       updateUser(profileData);
       alert('Perfil actualizado exitosamente');
     } catch (err) {
@@ -72,7 +72,7 @@ export default function UserDashboard({ onNavigate }) {
     }
 
     try {
-      await axios.put((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/users/${user.id}/change-password`, {
+      await axios.put((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/users/${user.id}/change-password`, {
         currentPassword: passData.current,
         newPassword: passData.new
       });
@@ -85,13 +85,13 @@ export default function UserDashboard({ onNavigate }) {
 
   const handleEnroll = async (activityId, activityType) => {
     try {
-      await axios.post((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/enroll`, {
+      await axios.post((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/enroll`, {
         userId: user.id,
         activityId,
         activityType
       });
       alert('¡Inscripción exitosa!');
-      const enRes = await axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/users/${user.id}/enrollments`);
+      const enRes = await axios.get((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/users/${user.id}/enrollments`);
       setEnrollments(enRes.data);
     } catch (err) {
       alert(err.response?.data?.error || 'Error al inscribirse');

@@ -11,7 +11,7 @@ import { exportService } from '../../services/exportService';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler);
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + ``;
 
 const CHART_OPTS = {
   responsive: true,

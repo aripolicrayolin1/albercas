@@ -176,7 +176,7 @@ export default function UserForm({ onNavigate }) {
     if (qrModalOpen && savedUser?.id) {
       interval = setInterval(async () => {
         try {
-          const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
+          const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + ``;
           const res = await axios.get(`${API_URL}/payments/check/${savedUser.id}`);
           if (res.data.paid) {
             setQrModalOpen(false);
@@ -289,7 +289,7 @@ export default function UserForm({ onNavigate }) {
       const priceMap = { 'diario': 50, 'mensual': 350, 'anual': 3200 };
       const price = priceMap[form.membership] || 50;
       
-      const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
+      const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + ``;
       const mpRes = await axios.post(`${API_URL}/create-preference`, {
         userId: newUser.id,
         title: `Membresía ${form.membership.toUpperCase()} - Alberca Municipal`,

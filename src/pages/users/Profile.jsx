@@ -31,7 +31,7 @@ export default function Profile() {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.put((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/users/${user.id}`, {
+      await axios.put((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/users/${user.id}`, {
         name: profileData.name,
         phone: profileData.phone,
         email: profileData.email,
@@ -59,7 +59,7 @@ export default function Profile() {
     
     setLoading(true);
     try {
-      await axios.put((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/users/${user.id}/change-password`, {
+      await axios.put((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/users/${user.id}/change-password`, {
         currentPassword: passData.current,
         newPassword: passData.new
       });

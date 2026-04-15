@@ -27,8 +27,8 @@ export default function PaymentProcessor({ onNavigate }) {
     const fetchData = async () => {
       try {
         const [usersRes, typesRes] = await Promise.all([
-          axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/users`),
-          axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/payment-types`)
+          axios.get((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/users`),
+          axios.get((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/payment-types`)
         ]);
         // Solo usuarios activos y excluyendo superadmin
         setUsers(usersRes.data.filter(u => u.status === 'activo' && u.role === 'user'));
@@ -45,7 +45,7 @@ export default function PaymentProcessor({ onNavigate }) {
     if (qrModalOpen && txRef) {
       interval = setInterval(async () => {
         try {
-          const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
+          const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + ``;
           const res = await axios.get(`${API_URL}/payments/check-ref/${txRef}`);
           if (res.data.paid) {
             setQrModalOpen(false);
@@ -100,7 +100,7 @@ export default function PaymentProcessor({ onNavigate }) {
       try {
         const uniqueRef = `TX-${Date.now()}-${user.id}`;
         setTxRef(uniqueRef);
-        const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
+        const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + ``;
         const mpRes = await axios.post(`${API_URL}/create-preference`, {
           userId: user.id,
           title: selectedType.name,

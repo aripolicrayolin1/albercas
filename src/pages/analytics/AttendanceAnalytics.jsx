@@ -10,7 +10,7 @@ import axios from 'axios';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + ``;
 
 const SEVERITY_CONFIG = {
   info: { color: '#6366f1', bg: 'rgba(99,102,241,0.08)', icon: Info, label: 'Información' },

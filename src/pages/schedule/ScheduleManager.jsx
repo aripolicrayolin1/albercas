@@ -43,7 +43,7 @@ export default function ScheduleManager() {
   const fetchData = async () => {
     try {
       const hostname = window.location.hostname;
-      const apiBase = `http://${hostname}:3001/api`;
+      const apiBase = 'https://albercas.onrender.com/api';
       const requests = [
         axios.get(`${apiBase}/schedules`),
         axios.get(`${apiBase}/events`),
@@ -93,14 +93,14 @@ export default function ScheduleManager() {
 
   const handleDeleteSchedule = async (id) => {
     if (window.confirm('¿Seguro que deseas borrar este horario?')) {
-      await axios.delete((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/schedules/${id}`);
+      await axios.delete((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/schedules/${id}`);
       fetchData();
     }
   };
 
   const handleDeleteEvent = async (id) => {
     if (window.confirm('¿Seguro que deseas borrar este evento?')) {
-      await axios.delete((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/events/${id}`);
+      await axios.delete((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/events/${id}`);
       fetchData();
     }
   };
@@ -110,7 +110,7 @@ export default function ScheduleManager() {
     setShowParticipantsModal(true);
     setLoadingParticipants(true);
     try {
-      const res = await axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/enrollments/${activity.id}`);
+      const res = await axios.get((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/enrollments/${activity.id}`);
       setParticipants(res.data);
     } catch (err) {
       console.error('Error fetching participants:', err);
@@ -392,9 +392,9 @@ export default function ScheduleManager() {
               };
               try {
                 if (isEditing) {
-                  await axios.put((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/schedules/${payload.id}`, payload);
+                  await axios.put((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/schedules/${payload.id}`, payload);
                 } else {
-                  await axios.post((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/schedules`, payload);
+                  await axios.post((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/schedules`, payload);
                 }
                 setShowScheduleModal(false);
                 fetchData();
@@ -507,9 +507,9 @@ export default function ScheduleManager() {
               };
               try {
                 if (isEditing) {
-                  await axios.put((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/events/${payload.id}`, payload);
+                  await axios.put((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/events/${payload.id}`, payload);
                 } else {
-                  await axios.post((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/events`, payload);
+                  await axios.post((import.meta.env.VITE_API_URL || 'https://albercas.onrender.com/api') + `/events`, payload);
                 }
                 setShowEventModal(false);
                 fetchData();
