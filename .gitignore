@@ -10,7 +10,18 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-*.local
+# Env & Secrets
+.env
+.env.local
+server/.env
+*.env
+migrate_to_aiven.js
+test_cloud_*.js
+
+# Production
+dist
+build
+.vercel
 
 # Editor directories and files
 .vscode/*

@@ -176,7 +176,7 @@ export default function UserForm({ onNavigate }) {
     if (qrModalOpen && savedUser?.id) {
       interval = setInterval(async () => {
         try {
-          const API_URL = `http://${window.location.hostname}:3001/api`;
+          const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
           const res = await axios.get(`${API_URL}/payments/check/${savedUser.id}`);
           if (res.data.paid) {
             setQrModalOpen(false);
@@ -289,7 +289,7 @@ export default function UserForm({ onNavigate }) {
       const priceMap = { 'diario': 50, 'mensual': 350, 'anual': 3200 };
       const price = priceMap[form.membership] || 50;
       
-      const API_URL = `http://${window.location.hostname}:3001/api`;
+      const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
       const mpRes = await axios.post(`${API_URL}/create-preference`, {
         userId: newUser.id,
         title: `Membresía ${form.membership.toUpperCase()} - Alberca Municipal`,
@@ -368,7 +368,7 @@ export default function UserForm({ onNavigate }) {
               ].map(item => (
                 <div key={item.label} style={item.isSecret ? { gridColumn: 'span 2', background: 'rgba(245,158,11,0.1)', padding: '8px 12px', borderRadius: 8, border: '1px dashed var(--color-warning)' } : {}}>
                   <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', marginBottom: 2 }}>
-                    {item.label} {item.isSecret && '🔑'}
+                    {item.label} {item.isSecret && <Key size={10} style={{ display: 'inline', marginLeft: 4 }} />}
                   </div>
                   <div style={{
                     fontSize: item.isSecret ? 18 : 12, fontWeight: 700,
@@ -397,7 +397,7 @@ export default function UserForm({ onNavigate }) {
             color: 'var(--color-text-muted)',
             marginBottom: 'var(--space-6)',
           }}>
-            🔔 La tarjeta física ya está vinculada. El escáner NFC la reconocerá en cuanto sea detectada por el sensor.
+            <Bell size={14} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle' }} /> La tarjeta física ya está vinculada. El escáner NFC la reconocerá en cuanto sea detectada por el sensor.
           </div>
 
           <div className="flex gap-3" style={{ justifyContent: 'center' }}>
@@ -618,7 +618,7 @@ export default function UserForm({ onNavigate }) {
                           {evt.title}
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
-                          📅 {evt.date} · {evt.time}
+                          <Calendar size={11} style={{ display: 'inline', marginRight: 4 }} /> {evt.date} · {evt.time}
                         </div>
                         <div style={{ fontSize: 10, alignSelf: 'flex-start' }}>
                           <span className="badge" style={{ padding: '2px 6px', fontSize: 9 }}>{evt.pool}</span>

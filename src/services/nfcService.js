@@ -1,107 +1,123 @@
 /**
- * nfcService.js — Real Web NFC API (NDEFReader)
+ * nfcService.js — NFC híbrido: Nativo (Capacitor Android) + Web NFC (Chrome)
  *
- * Uses the Web NFC API available in Chrome for Android.
- * Cards are identified by their hardware serial number.
+ * Modo 1 — App nativa Capacitor:
+ *   Usa el puente nativo de MainActivity.java que dispara el evento
+ *   'nfc-tag-detected' en el WebView. No requiere permisos de navegador.
  *
- * Compatibility:
- *   ✅ Chrome for Android (version 89+)
- *   ❌ Chrome Desktop (Windows/macOS)
- *   ❌ Firefox (any platform)
- *   ❌ Safari / iOS
- *
- * Requirement: Page must be served over HTTPS or localhost.
- * For LAN testing from a phone, use `npm run dev -- --host` and access via HTTPS
- * or via a tunneling tool like ngrok.
+ * Modo 2 — Chrome para Android (fallback):
+ *   Usa la Web NFC API (NDEFReader). Solo disponible en Chrome ≥ 89.
+ *   Requiere HTTPS o localhost.
  */
 
 import axios from 'axios';
 
-const API_URL = `http://${window.location.hostname}:3001/api`;
+const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`;
 
-let _abortController = null;
-let _reader = null;
+// ── Detectar si corremos dentro de la app nativa Capacitor ───────────────────
 
-// ── Result builder (Ahora asíncrono para consultar al servidor) ──────────────
+function isCapacitorNative() {
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
 
+// ── Estado interno ─────────────────────────────────────────────────────────────
 
-// ── NDEF record decoder ──────────────────────────────────────────────────────
+let _nativeListener = null;     // Listener del evento nativo
+let _abortController = null;    // Para Web NFC
+let _reader = null;             // NDEFReader de Web NFC
+
+// ── Decodificador de registros NDEF (Web NFC) ─────────────────────────────────
 
 function decodeRecords(message) {
   if (!message?.records) return [];
   return message.records.map(record => {
     let decoded = null;
     try {
-      if (record.recordType === 'text') {
-        const lang = record.lang ?? 'es';
-        decoded = new TextDecoder().decode(record.data);
-      } else if (record.recordType === 'url') {
+      if (record.recordType === 'text' || record.recordType === 'url') {
         decoded = new TextDecoder().decode(record.data);
       } else if (record.recordType === 'mime') {
         decoded = `[${record.mediaType}]`;
       }
     } catch (_) {}
-    return {
-      recordType: record.recordType,
-      mediaType: record.mediaType ?? null,
-      decoded,
-    };
+    return { recordType: record.recordType, mediaType: record.mediaType ?? null, decoded };
   });
 }
 
-// ── Public API ────────────────────────────────────────────────────────────────
+// ── API pública ────────────────────────────────────────────────────────────────
 
 export const nfcService = {
-  /**
-   * Returns true if the Web NFC API is available in this browser.
-   */
+
   isSupported() {
-    return typeof window !== 'undefined' && 'NDEFReader' in window;
+    // Soportado si: es app nativa Capacitor con NFC, O si hay NDEFReader en el navegador
+    return isCapacitorNative() || (typeof window !== 'undefined' && 'NDEFReader' in window);
   },
 
   /**
-   * Begin scanning for NFC tags.
-   * @param {(result: ScanResult) => void} onScan     - called on each tag read
-   * @param {(error: string) => void}      onError    - called on permission/read errors
-   * @param {object}                       scanConfig - { status, poolName, serviceName }
+   * Iniciar escaneo NFC.
+   * @param {(result) => void} onScan
+   * @param {(error: string) => void} onError
+   * @param {object} scanConfig - { status, activityId, activityType }
    */
   async startScan(onScan, onError, scanConfig = {}) {
-    if (!this.isSupported()) {
-      onError?.('Web NFC no está disponible en este navegador. Usa Chrome en Android.');
-      return;
-    }
 
-    try {
-      _abortController = new AbortController();
-      _reader = new NDEFReader();
+    if (isCapacitorNative()) {
+      // ── MODO NATIVO: escuchar el evento disparado por MainActivity.java ──
+      if (_nativeListener) {
+        window.removeEventListener('nfc-tag-detected', _nativeListener);
+      }
 
-      _reader.addEventListener('reading', async ({ serialNumber, message }) => {
-        const records = decodeRecords(message);
-        const result = await processScanResult(serialNumber, records, scanConfig);
+      _nativeListener = async (event) => {
+        const serialNumber = event.detail?.serialNumber;
+        if (!serialNumber) return;
+        const result = await processScanResult(serialNumber, [], scanConfig);
         onScan(result);
-      });
+      };
 
-      _reader.addEventListener('readingerror', (event) => {
-        onError?.(`Error al leer la tarjeta: ${event.message ?? 'Error desconocido'}`);
-      });
+      window.addEventListener('nfc-tag-detected', _nativeListener);
+      console.log('NFC nativo iniciado (Capacitor Android)');
 
-      await _reader.scan({ signal: _abortController.signal });
-    } catch (err) {
-      if (err.name === 'AbortError') return; // Normal stop
-      if (err.name === 'NotAllowedError') {
-        onError?.('Permiso denegado. Activa NFC en tu dispositivo y concede acceso al navegador.');
-      } else if (err.name === 'NotSupportedError') {
-        onError?.('NFC no está soportado o está desactivado en este dispositivo.');
-      } else {
-        onError?.(err.message ?? 'Error desconocido al iniciar el escáner NFC.');
+    } else {
+      // ── MODO WEB NFC (Chrome) ──────────────────────────────────────────────
+      if (!('NDEFReader' in window)) {
+        onError?.('Web NFC no está disponible. Usa Chrome en Android o la app nativa.');
+        return;
+      }
+
+      try {
+        _abortController = new AbortController();
+        _reader = new NDEFReader();
+
+        _reader.addEventListener('reading', async ({ serialNumber, message }) => {
+          const records = decodeRecords(message);
+          const result = await processScanResult(serialNumber, records, scanConfig);
+          onScan(result);
+        });
+
+        _reader.addEventListener('readingerror', (event) => {
+          onError?.(`Error al leer la tarjeta: ${event.message ?? 'Error desconocido'}`);
+        });
+
+        await _reader.scan({ signal: _abortController.signal });
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        if (err.name === 'NotAllowedError') {
+          onError?.('Permiso denegado. Activa NFC en tu dispositivo y concede acceso al navegador.');
+        } else if (err.name === 'NotSupportedError') {
+          onError?.('NFC no está soportado o está desactivado en este dispositivo.');
+        } else {
+          onError?.(err.message ?? 'Error desconocido al iniciar el escáner NFC.');
+        }
       }
     }
   },
 
-  /**
-   * Stop the active scan session.
-   */
   stopScan() {
+    // Detener modo nativo
+    if (_nativeListener) {
+      window.removeEventListener('nfc-tag-detected', _nativeListener);
+      _nativeListener = null;
+    }
+    // Detener Web NFC
     if (_abortController) {
       _abortController.abort();
       _abortController = null;
@@ -110,22 +126,39 @@ export const nfcService = {
   },
 
   /**
-   * Read a single NFC tag (used during user registration).
+   * Leer una sola tarjeta (para registro de usuarios).
    */
   readOneCard() {
-    if (!this.isSupported()) {
-      return Promise.reject(new Error(
-        'Web NFC no está disponible en este navegador. Usa Chrome en Android.'
-      ));
+    if (isCapacitorNative()) {
+      // En modo nativo: esperamos el siguiente evento
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          window.removeEventListener('nfc-tag-detected', handler);
+          reject(new Error('Tiempo de espera agotado. Acerca la tarjeta NFC.'));
+        }, 30000);
+
+        const handler = (event) => {
+          clearTimeout(timeout);
+          window.removeEventListener('nfc-tag-detected', handler);
+          const serialNumber = event.detail?.serialNumber;
+          if (serialNumber) resolve(serialNumber);
+          else reject(new Error('No se pudo leer el número de serie.'));
+        };
+
+        window.addEventListener('nfc-tag-detected', handler);
+      });
+    }
+
+    // Fallback: Web NFC
+    if (!('NDEFReader' in window)) {
+      return Promise.reject(new Error('NFC no disponible en este navegador. Usa la app nativa.'));
     }
 
     return new Promise(async (resolve, reject) => {
-      let tempReader;
       let tempController;
-
       try {
         tempController = new AbortController();
-        tempReader = new NDEFReader();
+        const tempReader = new NDEFReader();
 
         tempReader.addEventListener('reading', ({ serialNumber }) => {
           tempController.abort();
@@ -139,22 +172,18 @@ export const nfcService = {
 
         await tempReader.scan({ signal: tempController.signal });
       } catch (err) {
-        if (err.name !== 'AbortError') {
-          reject(err);
-        }
+        if (err.name !== 'AbortError') reject(err);
       }
     });
   },
 
-  /**
-   * Returns the current state: 'scanning' | 'idle'
-   */
   get isScanning() {
+    if (isCapacitorNative()) return _nativeListener !== null;
     return _abortController !== null && !_abortController.signal.aborted;
   },
 };
 
-// ── Result builder (Asíncrono) ────────────────────────────────────────────────
+// ── Procesador de resultado (consulta al backend) ─────────────────────────────
 
 async function processScanResult(serialNumber, records = [], scanConfig = {}) {
   const now = new Date();
@@ -162,12 +191,10 @@ async function processScanResult(serialNumber, records = [], scanConfig = {}) {
   const scanDate = now.toISOString().split('T')[0];
 
   try {
-    // 1. Validar usuario en el servidor pasando actividad seleccionada
     const { activityId, activityType } = scanConfig;
     const query = (activityId && activityType) ? `?activityId=${activityId}&activityType=${activityType}` : '';
     const res = await axios.get(`${API_URL}/users/validate/${serialNumber}${query}`);
-    const validation = res.data; 
-    // validation = { user, lastPaymentDate, daysRemaining, statusIndicator, errorMessage }
+    const validation = res.data;
 
     return {
       nfcCard: serialNumber,
@@ -179,7 +206,7 @@ async function processScanResult(serialNumber, records = [], scanConfig = {}) {
       scanTime,
       scanDate,
       success: validation.statusIndicator !== 'rojo',
-      errorMessage: validation.errorMessage, // Usar el error que viene del backend
+      errorMessage: validation.errorMessage,
       rawRecords: records,
       status: scanConfig.status || 'entrada',
       validationData: validation
@@ -196,8 +223,8 @@ async function processScanResult(serialNumber, records = [], scanConfig = {}) {
       scanTime,
       scanDate,
       success: false,
-      errorMessage: is404 
-        ? `La tarjeta ${serialNumber} no existe.`
+      errorMessage: is404
+        ? `La tarjeta ${serialNumber} no está registrada en el sistema.`
         : 'Error al contactar el servidor para validación.',
       rawRecords: records,
       status: scanConfig.status || 'entrada',
@@ -205,4 +232,3 @@ async function processScanResult(serialNumber, records = [], scanConfig = {}) {
     };
   }
 }
-

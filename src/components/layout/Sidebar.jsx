@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { SIDEBAR_MENUS, ROLE_LABELS, ROLE_COLORS } from '../../data/roles';
+import logoImg from '../../assets/logo-tulancingo.png';
 
 const ICON_MAP = {
   LayoutDashboard, Wifi, Users, Calendar, CreditCard,
@@ -36,14 +37,12 @@ export default function Sidebar({
       aria-label="Navegación principal"
     >
       {/* Logo */}
-      <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">
-          <Waves size={20} color="white" />
-        </div>
-        <div className="sidebar-logo-text">
-          <h2>Albercas</h2>
-          <span>Sistema Municipal</span>
-        </div>
+      <div className="sidebar-logo" onClick={() => onNavigate('/')}>
+        <img 
+          src={logoImg} 
+          alt="Tulancingo Logo" 
+          className="sidebar-logo-img"
+        />
       </div>
 
       {/* Nav */}
@@ -58,12 +57,18 @@ export default function Sidebar({
             <button
               key={item.path}
               className={`sidebar-link${isActive ? ' active' : ''}`}
-              onClick={() => onNavigate(item.path)}
-              title={collapsed ? item.label : undefined}
-              aria-current={isActive ? 'page' : undefined}
+              onClick={() => {
+                onNavigate(item.path);
+                if (mobileOpen) onMobileClose();
+              }}
+              title={collapsed ? item.label : ''}
+              id={`nav-${item.path.substring(1) || 'dashboard'}`}
             >
-              {IconComponent && <IconComponent className="sidebar-link-icon" size={18} />}
-              <span className="sidebar-link-text">{item.label}</span>
+              <div className="sidebar-link-icon">
+                <IconComponent size={20} />
+              </div>
+              {!collapsed && <span className="sidebar-link-text">{item.label}</span>}
+              {!collapsed && isActive && <div className="active-indicator" />}
             </button>
           );
         })}
@@ -71,34 +76,39 @@ export default function Sidebar({
 
       {/* Footer */}
       <div className="sidebar-footer">
-        <div className="sidebar-user">
-          <div className="sidebar-avatar" style={{ background: `linear-gradient(135deg, ${roleColor}, color-mix(in srgb, ${roleColor} 70%, #22d3ee))` }}>
+        <div className="sidebar-user" onClick={() => onNavigate('/profile')} style={{ cursor: 'pointer' }}>
+          <div 
+            className="sidebar-user-avatar"
+            style={{ background: `linear-gradient(135deg, ${roleColor}, var(--color-secondary))` }}
+          >
             {initials}
           </div>
-          <div className="sidebar-user-info">
-            <div className="sidebar-user-name truncate">{user.name}</div>
-            <div className="sidebar-user-role">{roleLabel}</div>
-          </div>
-          <button
-            className="btn btn-ghost"
-            onClick={logout}
-            title="Cerrar sesión"
-            style={{ padding: '4px', minWidth: 28 }}
-          >
-            <LogOut size={15} />
-          </button>
+          {!collapsed && (
+            <div className="sidebar-user-info">
+              <div className="sidebar-user-name">{user.name.split(' ')[0]}</div>
+              <div className="sidebar-user-role">{roleLabel}</div>
+            </div>
+          )}
         </div>
-      </div>
+        
+        <button 
+          className="sidebar-logout" 
+          onClick={logout}
+          title={collapsed ? "Cerrar Sesión" : ""}
+          id="logout-btn"
+        >
+          <LogOut size={20} />
+          {!collapsed && <span>Cerrar Sesión</span>}
+        </button>
 
-      {/* Collapse toggle */}
-      <button
-        className="sidebar-collapse-btn"
-        onClick={onToggleCollapse}
-        title={collapsed ? 'Expandir' : 'Colapsar'}
-        aria-label={collapsed ? 'Expandir navegación' : 'Colapsar navegación'}
-      >
-        {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-      </button>
+        <button 
+          className="sidebar-collapse-btn"
+          onClick={onToggleCollapse}
+          id="sidebar-toggle-btn"
+        >
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
+      </div>
     </aside>
   );
 }

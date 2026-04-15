@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = `http://${window.location.hostname}:3001/api`;
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
 const PROCESSING_DELAY = 1200; // ms
 
 export const paymentService = {
@@ -45,8 +45,8 @@ export const paymentService = {
   },
 
   getPaymentMethods: () => [
-    { id: 'efectivo', label: 'Efectivo', icon: '💵' },
-    { id: 'tarjeta', label: 'Tarjeta', icon: '💳' },
-    { id: 'transferencia', label: 'Transferencia', icon: '🏦' },
+    { id: 'efectivo', label: 'Efectivo', icon: 'Banknote' },
+    { id: 'tarjeta', label: 'Tarjeta', icon: 'CreditCard' },
+    { id: 'transferencia', label: 'Transferencia', icon: 'Landmark' },
   ],
 };

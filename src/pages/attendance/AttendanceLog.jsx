@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Search, Download, UserCheck, LogOut, Users, FileText, Table as TableIcon, FileDigit } from 'lucide-react';
 import { exportService } from '../../services/exportService';
 
-const API_URL = `http://${window.location.hostname}:3001/api`;
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
 
 export default function AttendanceLog() {
   const [attendance, setAttendance] = useState([]);

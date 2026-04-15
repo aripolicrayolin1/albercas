@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   Wifi, WifiOff, CheckCircle, XCircle, Clock,
-  Users, StopCircle, Play, AlertTriangle, Smartphone, Info, QrCode
+  Users, StopCircle, Play, AlertTriangle, Smartphone, Info, QrCode, Lightbulb
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { nfcService } from '../../services/nfcService';
@@ -29,7 +29,7 @@ function CompatibilityBanner() {
         <div style={{ fontSize: 12.5, color: 'var(--color-text-muted)', lineHeight: 1.7 }}>
           <p>1. <strong>Contexto Seguro:</strong> La API Web NFC <em>solo</em> funciona en sitios seguros (<strong>HTTPS</strong>) o en <strong>localhost</strong>. Si accedes por IP local sin HTTPS, el navegador bloqueará el sensor.</p>
           <div style={{ marginTop: 6, padding: '6px 10px', background: 'rgba(0,0,0,0.15)', borderRadius: 6, fontSize: 11.5 }}>
-            💡 <strong>Tip para pruebas:</strong> Usa <code style={{ color: 'var(--color-secondary)' }}>npm run dev -- --host</code> y asegúrate de que el teléfono esté en la misma red WiFi. Si no carga el NFC, prueba usando un túnel local o configura Chrome para tratar tu IP de red como segura.
+            <Lightbulb size={12} style={{ display: 'inline', marginRight: 4 }} /> <strong>Tip para pruebas:</strong> Usa <code style={{ color: 'var(--color-secondary)' }}>npm run dev -- --host</code> y asegúrate de que el teléfono esté en la misma red WiFi. Si no carga el NFC, prueba usando un túnel local o configura Chrome para tratar tu IP de red como segura.
           </div>
         </div>
       </div>
@@ -112,7 +112,7 @@ function NFCNotSupported() {
           </div>
         ))}
         <div style={{ marginTop: 12, fontSize: 11, padding: '8px', border: '1px dashed var(--color-primary)', borderRadius: 6, color: 'var(--color-primary)' }}>
-          ⚠️ <strong>Importante:</strong> Si el botón de "Activar Escáner" no aparece tras seguir estos pasos, es probable que el navegador haya bloqueado la API por falta de un certificado SSL válido.
+          <AlertTriangle size={12} style={{ display: 'inline', marginRight: 4 }} /> <strong>Importante:</strong> Si el botón de "Activar Escáner" no aparece tras seguir estos pasos, es probable que el navegador haya bloqueado la API por falta de un certificado SSL válido.
         </div>
       </div>
     </div>
@@ -151,13 +151,13 @@ export default function NFCScanner() {
     const fetchActivities = async () => {
       try {
         const [schedRes, evRes] = await Promise.all([
-          axios.get(`http://${window.location.hostname}:3001/api/schedules`),
-          axios.get(`http://${window.location.hostname}:3001/api/events`)
+          axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/schedules`),
+          axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/events`)
         ]);
         
         const all = [
-          ...schedRes.data.map(s => ({ ...s, type: 'schedule', icon: '🗓️' })),
-          ...evRes.data.map(e => ({ ...e, type: 'event', icon: '⭐' }))
+          ...schedRes.data.map(s => ({ ...s, type: 'schedule', icon: Calendar })),
+          ...evRes.data.map(e => ({ ...e, type: 'event', icon: Star }))
         ];
         setActivities(all);
         if (all.length > 0) {
@@ -225,7 +225,7 @@ export default function NFCScanner() {
     setGeneratingQr(true);
     try {
       const price = lastScan.membership?.toLowerCase() === 'anual' ? 3200 : (lastScan.membership?.toLowerCase() === 'diario' ? 50 : 350);
-      const API_URL = `http://${window.location.hostname}:3001/api`;
+      const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
       const res = await axios.post(`${API_URL}/create-preference`, {
         title: `Renovación Exprés ${lastScan.membership || 'Mensual'} - ${lastScan.userName}`,
         price: price,
@@ -246,7 +246,7 @@ export default function NFCScanner() {
     if (!qrLink || !lastScan || !lastScan.userId) return;
     const interval = setInterval(async () => {
       try {
-        const res = await axios.get(`http://${window.location.hostname}:3001/api/payments/check/${lastScan.userId}`);
+        const res = await axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/payments/check/${lastScan.userId}`);
         if (res.data && res.data.paid) {
           playTone('success');
           alert(`¡${lastScan.userName} ha pagado exitosamente! Por favor pídale que vuelva a acercar la tarjeta para ingresar en Verde.`);
@@ -262,7 +262,7 @@ export default function NFCScanner() {
   const registerAttendance = async () => {
     if (!lastScan || !lastScan.success) return;
     try {
-      const API_URL = `http://${window.location.hostname}:3001/api`;
+      const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
       await axios.post(`${API_URL}/attendance`, {
         userId: lastScan.userId,
         userName: lastScan.userName,
@@ -396,7 +396,7 @@ export default function NFCScanner() {
                 ) : (
                   activities.map(a => (
                     <option key={`${a.id}-${a.type}`} value={`${a.id}|${a.type}`}>
-                      {a.icon} {a.title} ({a.type === 'schedule' ? 'Regular' : 'Evento'})
+                      {a.type === 'schedule' ? 'Reg.' : 'Evt.'} {a.title}
                     </option>
                   ))
                 )}
@@ -489,7 +489,7 @@ export default function NFCScanner() {
                   : <XCircle size={24} color="var(--color-danger)" />}
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 15 }}>
-                    {lastScan.success ? '✓ Acceso Concedido' : '✗ Acceso Denegado'}
+                    {lastScan.success ? 'Acceso Concedido' : 'Acceso Denegado'}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
                     {lastScan.scanTime} · {lastScan.scanDate}

@@ -24,7 +24,7 @@ export default function AdminDashboard({ onNavigate }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const API_URL = `http://${window.location.hostname}:3001/api`;
+        const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
         const [statsRes, attendanceRes, paymentsRes] = await Promise.all([
           axios.get(`${API_URL}/stats`),
           axios.get(`${API_URL}/attendance`),

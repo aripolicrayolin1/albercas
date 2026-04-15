@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, CheckCircle, XCircle, Loader, RefreshCw } from 'lucide-react';
+import { 
+  CreditCard, CheckCircle, XCircle, Loader, RefreshCw, 
+  Waves, Star, BookOpen, Dumbbell, Trophy, Banknote, Landmark, Smartphone
+} from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import axios from 'axios';
 import { paymentService } from '../../services/paymentService';
@@ -24,8 +27,8 @@ export default function PaymentProcessor({ onNavigate }) {
     const fetchData = async () => {
       try {
         const [usersRes, typesRes] = await Promise.all([
-          axios.get(`http://${window.location.hostname}:3001/api/users`),
-          axios.get(`http://${window.location.hostname}:3001/api/payment-types`)
+          axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/users`),
+          axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/payment-types`)
         ]);
         // Solo usuarios activos y excluyendo superadmin
         setUsers(usersRes.data.filter(u => u.status === 'activo' && u.role === 'user'));
@@ -42,7 +45,7 @@ export default function PaymentProcessor({ onNavigate }) {
     if (qrModalOpen && txRef) {
       interval = setInterval(async () => {
         try {
-          const API_URL = `http://${window.location.hostname}:3001/api`;
+          const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
           const res = await axios.get(`${API_URL}/payments/check-ref/${txRef}`);
           if (res.data.paid) {
             setQrModalOpen(false);
@@ -66,7 +69,20 @@ export default function PaymentProcessor({ onNavigate }) {
     return () => clearInterval(interval);
   }, [qrModalOpen, txRef, users, selectedUser, selectedType]);
 
-  const CATEGORY_ICONS = { acceso: '🏊', membresía: '⭐', clase: '📚', taller: '🏋️', club: '🏆' };
+  const CATEGORY_ICONS = { 
+    acceso: Waves, 
+    membresía: Star, 
+    clase: BookOpen, 
+    taller: Dumbbell, 
+    club: Trophy 
+  };
+
+  const METHOD_ICONS = {
+    'Efectivo': Banknote,
+    'Tarjeta': CreditCard,
+    'Transferencia': Landmark,
+    'Mercado Pago (QR)': Smartphone
+  };
 
   const handleProcess = async () => {
     if (!selectedType || !selectedUser) return;
@@ -84,7 +100,7 @@ export default function PaymentProcessor({ onNavigate }) {
       try {
         const uniqueRef = `TX-${Date.now()}-${user.id}`;
         setTxRef(uniqueRef);
-        const API_URL = `http://${window.location.hostname}:3001/api`;
+        const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
         const mpRes = await axios.post(`${API_URL}/create-preference`, {
           userId: user.id,
           title: selectedType.name,
@@ -174,7 +190,10 @@ export default function PaymentProcessor({ onNavigate }) {
                         : 'var(--color-surface-hover)',
                     }}
                   >
-                    <span style={{ fontSize: 20, marginBottom: 4 }}>{CATEGORY_ICONS[pt.category]}</span>
+                    {(() => {
+                      const Icon = CATEGORY_ICONS[pt.category] || Waves;
+                      return <Icon size={20} color={selectedType?.id === pt.id ? 'var(--color-primary)' : 'var(--color-text-muted)'} style={{ marginBottom: 4 }} />;
+                    })()}
                     <span style={{ fontWeight: 700, fontSize: 13 }}>{pt.name}</span>
                     <span style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>{pt.duration}</span>
                     <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-success)', marginTop: 4 }}>
@@ -226,7 +245,10 @@ export default function PaymentProcessor({ onNavigate }) {
                       color: method === m ? 'var(--color-primary)' : 'var(--color-text-muted)',
                     }}
                   >
-                    {m === 'Efectivo' ? '💵' : m === 'Tarjeta' ? '💳' : m === 'Transferencia' ? '🏦' : '📱'} {m}
+                    {(() => {
+                      const Icon = METHOD_ICONS[m];
+                      return <Icon size={16} />;
+                    })()} {m}
                   </button>
                 ))}
               </div>
@@ -284,11 +306,14 @@ export default function PaymentProcessor({ onNavigate }) {
                   </div>
                   {selectedUser && (
                     <div className="flex items-center gap-2 mb-3" style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                      👤 {users.find(u => u.id === selectedUser)?.name}
+                      <span style={{ color: 'var(--color-primary)' }}>●</span> {users.find(u => u.id === selectedUser)?.name}
                     </div>
                   )}
                   <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12 }}>
-                    💳 {method}
+                    {(() => {
+                      const Icon = METHOD_ICONS[method];
+                      return <Icon size={14} />;
+                    })()} {method}
                   </div>
                   <hr className="divider" />
                   <div className="flex items-center justify-between" style={{ fontSize: 18, fontWeight: 800 }}>
@@ -413,7 +438,10 @@ export default function PaymentProcessor({ onNavigate }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-4)' }}>
           {paymentTypes.map(pt => (
             <div key={pt.id} className="card" style={{ position: 'relative' }}>
-              <span style={{ fontSize: 28 }}>{CATEGORY_ICONS[pt.category]}</span>
+              {(() => {
+                const Icon = CATEGORY_ICONS[pt.category] || Waves;
+                return <Icon size={32} color="var(--color-primary)" />;
+              })()}
               <div style={{ fontSize: 16, fontWeight: 700, margin: '8px 0 4px' }}>{pt.name}</div>
               <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 12 }}>{pt.description}</div>
               <div className="flex items-center justify-between">

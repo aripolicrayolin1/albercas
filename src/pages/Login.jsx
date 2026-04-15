@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Waves, Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { DEMO_ACCOUNTS, ROLE_LABELS } from '../data/roles';
+import logoImg from '../assets/logo-tulancingo.png';
 
 export default function Login({ onLoginSuccess }) {
   const { login } = useAuth();
@@ -38,29 +39,28 @@ export default function Login({ onLoginSuccess }) {
     <div className="login-page">
       <div className="login-bg" aria-hidden="true" />
 
-      {/* Decorative blobs */}
+      {/* Decorative blobs - Institutional Morena Colors */}
       <div aria-hidden="true" style={{
-        position: 'absolute', top: '10%', left: '5%',
-        width: 300, height: 300, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)',
+        position: 'absolute', top: '5%', left: '-5%',
+        width: 400, height: 400, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(139,26,44,0.12) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
       <div aria-hidden="true" style={{
-        position: 'absolute', bottom: '15%', right: '8%',
-        width: 250, height: 250, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(34,211,238,0.1) 0%, transparent 70%)',
+        position: 'absolute', bottom: '10%', right: '-5%',
+        width: 350, height: 350, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(200,146,42,0.08) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
 
       <div className="login-card" role="main">
         {/* Logo */}
-        <div className="login-logo">
-          <div className="login-logo-icon">
-            <Waves size={24} color="white" />
-          </div>
-          <div>
-            <div className="login-title">Albercas Municipales</div>
-          </div>
+        <div className="login-logo" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', alignItems: 'center', marginBottom: 'var(--space-8)' }}>
+          <img 
+            src={logoImg} 
+            alt="Tulancingo Logo" 
+            style={{ width: 140, height: 'auto', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }} 
+          />
         </div>
 
         <p className="login-subtitle">
@@ -140,7 +140,19 @@ export default function Login({ onLoginSuccess }) {
             type="submit"
             className="btn btn-primary w-full"
             disabled={loading}
-            style={{ marginTop: 8, height: 44, fontSize: 15, justifyContent: 'center' }}
+            style={{ 
+              marginTop: 16, 
+              height: 48, 
+              fontSize: 16, 
+              fontWeight: 700,
+              justifyContent: 'center',
+              backgroundColor: 'var(--color-primary)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(139,26,44,0.2)'
+            }}
             id="login-submit-btn"
           >
             {loading ? (

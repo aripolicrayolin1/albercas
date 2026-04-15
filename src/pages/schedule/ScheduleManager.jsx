@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Clock, Users, MapPin, Edit, Trash2 } from 'lucide-react';
+import { Plus, Clock, Users, MapPin, Edit, Trash2, Calendar, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const DAYS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
@@ -93,14 +93,14 @@ export default function ScheduleManager() {
 
   const handleDeleteSchedule = async (id) => {
     if (window.confirm('¿Seguro que deseas borrar este horario?')) {
-      await axios.delete(`http://${window.location.hostname}:3001/api/schedules/${id}`);
+      await axios.delete((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/schedules/${id}`);
       fetchData();
     }
   };
 
   const handleDeleteEvent = async (id) => {
     if (window.confirm('¿Seguro que deseas borrar este evento?')) {
-      await axios.delete(`http://${window.location.hostname}:3001/api/events/${id}`);
+      await axios.delete((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/events/${id}`);
       fetchData();
     }
   };
@@ -110,7 +110,7 @@ export default function ScheduleManager() {
     setShowParticipantsModal(true);
     setLoadingParticipants(true);
     try {
-      const res = await axios.get(`http://${window.location.hostname}:3001/api/enrollments/${activity.id}`);
+      const res = await axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/enrollments/${activity.id}`);
       setParticipants(res.data);
     } catch (err) {
       console.error('Error fetching participants:', err);
@@ -281,7 +281,7 @@ export default function ScheduleManager() {
               </div>
               <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{e.title}</div>
               <div className="flex items-center gap-2 mb-2" style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                📅 {e.date} · ⏰ {e.time} ({e.duration})
+                <Calendar size={12} /> {e.date} · <Clock size={12} /> {e.time} ({e.duration})
               </div>
               <div className="flex items-center gap-2 mb-3" style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
                 <MapPin size={12} /> {e.pool}
@@ -392,9 +392,9 @@ export default function ScheduleManager() {
               };
               try {
                 if (isEditing) {
-                  await axios.put(`http://${window.location.hostname}:3001/api/schedules/${payload.id}`, payload);
+                  await axios.put((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/schedules/${payload.id}`, payload);
                 } else {
-                  await axios.post(`http://${window.location.hostname}:3001/api/schedules`, payload);
+                  await axios.post((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/schedules`, payload);
                 }
                 setShowScheduleModal(false);
                 fetchData();
@@ -507,9 +507,9 @@ export default function ScheduleManager() {
               };
               try {
                 if (isEditing) {
-                  await axios.put(`http://${window.location.hostname}:3001/api/events/${payload.id}`, payload);
+                  await axios.put((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/events/${payload.id}`, payload);
                 } else {
-                  await axios.post(`http://${window.location.hostname}:3001/api/events`, payload);
+                  await axios.post((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/events`, payload);
                 }
                 setShowEventModal(false);
                 fetchData();
@@ -590,7 +590,7 @@ export default function ScheduleManager() {
                 <div className="card-title">Inscritos en la Actividad</div>
                 <div style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: 14 }}>{selectedActivity?.title}</div>
               </div>
-              <button className="btn btn-ghost" onClick={() => setShowParticipantsModal(false)}>✕</button>
+              <button className="btn btn-ghost" onClick={() => setShowParticipantsModal(false)}><X size={18} /></button>
             </div>
 
             {loadingParticipants ? (

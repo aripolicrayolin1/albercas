@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      const res = await axios.post(`http://${window.location.hostname}:3001/api/auth/login`, { email, password });
+      const res = await axios.post((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/auth/login`, { email, password });
       const { token, user } = res.data;
       
       setUser(user);

@@ -158,9 +158,11 @@ app.put('/api/users/:id', async (req, res) => {
 
 app.delete('/api/users/:id', async (req, res) => {
   try {
-    // Soft delete: deactivates user to keep payment history consistent
-    await db.query('UPDATE users SET status = "inactivo" WHERE id = ?', [req.params.id]);
-    res.json({ success: true, softDelete: true });
+    // Hard delete: permanently removes user record
+    // Note: enrollements will be deleted via ON DELETE CASCADE in MySQL
+    // payments and attendance will have user_id set to NULL but keep snapshots
+    await db.query('DELETE FROM users WHERE id = ?', [req.params.id]);
+    res.json({ success: true, hardDelete: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -554,44 +556,62 @@ app.get('/api/users/validate/:nfc', async (req, res) => {
       } else {
         const now = new Date();
         const currentDay = now.getDay() === 0 ? 7 : now.getDay(); // Mapeo 1-7
-        const currentTime = now.toLocaleTimeString('en-GB', { hour12: false }); // "HH:MM:SS"
 
         if (activityType === 'schedule') {
           const [schedules] = await db.query('SELECT * FROM schedules WHERE id = ?', [activityId]);
           const s = schedules[0];
           
           if (s) {
-            const allowedDays = (s.days || '').split(',');
+            const allowedDays = (s.days || '').split(',').map(d => d.trim());
             if (!allowedDays.includes(String(currentDay))) {
+              const dayNames = { 1:'Lun', 2:'Mar', 3:'Mié', 4:'Jue', 5:'Vie', 6:'Sáb', 7:'Dom' };
+              const readableDays = allowedDays.map(d => dayNames[d] || d).join(', ');
               status = 'rojo';
-              errorMessage = `Día incorrecto. Clase disponible: [${s.days}]`;
+              errorMessage = `Hoy no hay clase. Días disponibles: ${readableDays}.`;
             } else {
-              // Ventana de 30 mins antes hasta el final de la clase
-              const [h, m] = s.start_time.split(':');
-              const startLimit = new Date();
-              startLimit.setHours(h, parseInt(m) - 30, 0);
-              
-              const [eh, em] = s.end_time.split(':');
-              const endLimit = new Date();
-              endLimit.setHours(eh, em, 0);
+              // Ventana: 1 hora ANTES de inicio hasta 30 mins DESPUÉS del fin
+              const timeParts = (s.start_time || '00:00:00').split(':');
+              const startH = parseInt(timeParts[0], 10);
+              const startM = parseInt(timeParts[1], 10);
+
+              const endParts = (s.end_time || '23:59:00').split(':');
+              const endH = parseInt(endParts[0], 10);
+              const endM = parseInt(endParts[1], 10);
+
+              const startLimit = new Date(now);
+              startLimit.setHours(startH, startM - 30, 0, 0); // 30 mins antes del inicio
+
+              const endLimit = new Date(now);
+              endLimit.setHours(endH, endM, 0, 0); // Hasta la hora exacta del fin
 
               if (now < startLimit) {
                 status = 'rojo';
-                errorMessage = `Demasiado temprano. Tu clase empieza a las ${s.start_time.slice(0, 5)}.`;
+                const startStr = `${String(startH).padStart(2,'0')}:${String(startM).padStart(2,'0')}`;
+                errorMessage = `Demasiado temprano. La clase empieza a las ${startStr}. Puedes entrar 25-30 min antes.`;
               } else if (now > endLimit) {
                 status = 'rojo';
-                errorMessage = `Horario concluido. Tu clase terminó a las ${s.end_time.slice(0, 5)}.`;
+                const endStr = `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`;
+                errorMessage = `Horario concluido. La clase terminó a las ${endStr}.`;
               }
+              // Si está dentro del rango, status ya es 'verde' o 'naranja' del paso anterior
             }
           }
         } else if (activityType === 'event') {
           const [events] = await db.query('SELECT * FROM events WHERE id = ?', [activityId]);
           const e = events[0];
-          const todayDate = now.toISOString().split('T')[0];
+          // Comparar fechas en zona local (YYYY-MM-DD)
+          const pad = n => String(n).padStart(2, '0');
+          const todayDate = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
           
-          if (e && e.event_date.toISOString().split('T')[0] !== todayDate) {
-            status = 'rojo';
-            errorMessage = `Fecha incorrecta. El evento es el ${e.event_date.toISOString().split('T')[0]}.`;
+          if (e) {
+            const eventDate = e.event_date instanceof Date
+              ? `${e.event_date.getFullYear()}-${pad(e.event_date.getMonth()+1)}-${pad(e.event_date.getDate())}`
+              : String(e.event_date).split('T')[0];
+            
+            if (eventDate !== todayDate) {
+              status = 'rojo';
+              errorMessage = `Fecha incorrecta. El evento es el ${eventDate}.`;
+            }
           }
         }
       }
@@ -884,7 +904,7 @@ Responde ÚNICAMENTE con un JSON array con exactamente 4 objetos. Cada objeto:
 IMPORTANTE: Usa los números reales. Si hay pocos datos indica que el sistema es nuevo. Responde SOLO el JSON array sin markdown ni backticks.`;
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -919,7 +939,7 @@ IMPORTANTE: Usa los números reales. Si hay pocos datos indica que el sistema es
       success: true,
       insights,
       generatedAt: new Date().toISOString(),
-      model: 'Gemini 2.0 Flash'
+      model: 'Gemini 2.5 Flash Lite'
     });
   } catch (err) {
     console.error("Error en análisis IA:", err);

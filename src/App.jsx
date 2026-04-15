@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ShieldX, Loader } from 'lucide-react';
 import { ThemeProvider } from './context/ThemeContext';
 import { UserProvider } from './context/UserContext';
 
@@ -60,7 +61,7 @@ function AppRouter() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'var(--color-base)', flexDirection: 'column', gap: 16,
       }}>
-        <div className="loader" style={{ width: 32, height: 32 }} />
+        <Loader className="animate-spin" size={32} color="var(--color-primary)" />
         <div style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>Cargando sistema...</div>
       </div>
     );
@@ -136,7 +137,9 @@ function AppRouter() {
     // ── Fallback ───────────────────────────────────────────────────────────
     return (
       <div className="card" style={{ textAlign: 'center', padding: 'var(--space-12)' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          <ShieldX size={64} color="var(--color-danger)" />
+        </div>
         <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Página no encontrada</div>
         <div style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 'var(--space-6)' }}>
           No tienes permisos para acceder a esta sección, o la página no existe.

@@ -103,7 +103,7 @@ export default function UserModal({ user, mode, onClose, onSave, canEdit }) {
     try {
       const currentMembership = formData.membership || 'mensual';
       const price = currentMembership === 'anual' ? 3200 : (currentMembership === 'diario' ? 50 : 350);
-      const res = await axios.post(`http://${window.location.hostname}:3001/api/create-preference`, {
+      const res = await axios.post((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/create-preference`, {
         title: `Renovación de Membresía ${currentMembership} - ${formData.name}`,
         price: price,
         quantity: 1,
@@ -123,7 +123,7 @@ export default function UserModal({ user, mode, onClose, onSave, canEdit }) {
     if (!qrLink || !user.id) return;
     const interval = setInterval(async () => {
       try {
-        const res = await axios.get(`http://${window.location.hostname}:3001/api/payments/check/${user.id}`);
+        const res = await axios.get((import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + `/payments/check/${user.id}`);
         if (res.data && res.data.paid) {
           alert(`¡Pago completado! Se ha registrado exitosamente en la base de datos.`);
           clearInterval(interval);

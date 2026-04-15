@@ -11,7 +11,7 @@ import { exportService } from '../../services/exportService';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler);
 
-const API_URL = `http://${window.location.hostname}:3001/api`;
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`) + ``;
 
 const CHART_OPTS = {
   responsive: true,
@@ -230,7 +230,7 @@ export default function RevenueOverview({ onNavigate }) {
           </div>
         </div>
         <div className="stat-card" style={{ '--stat-color': '#ef4444', '--stat-bg': 'rgba(239,68,68,0.12)' }}>
-          <div className="stat-icon">⏳</div>
+          <div className="stat-icon" style={{ color: 'var(--color-danger)', background: 'rgba(239,68,68,0.12)' }}><Clock size={18} /></div>
           <div className="stat-info">
             <div className="stat-value">${pendingAmount.toLocaleString()}</div>
             <div className="stat-label">Pendiente de cobro</div>

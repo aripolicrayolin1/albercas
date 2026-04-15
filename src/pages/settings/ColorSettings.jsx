@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Palette, RotateCcw, Check, Eye } from 'lucide-react';
+import { Palette, RotateCcw, Check, Eye, Star, Accessibility } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 const COLOR_GROUPS = [
@@ -37,7 +37,26 @@ const COLOR_GROUPS = [
 
 const PRESETS = [
   {
+    name: 'Morena Institucional',
+    tag: 'Predeterminado',
+    colors: {
+      colorBase: '#f8f4f2', colorSurface: '#ffffff', colorPrimary: '#5d101d',
+      colorSecondary: '#c19434', colorAccent: '#a0781c', colorSuccess: '#16a34a',
+      colorDanger: '#dc2626', colorText: '#1a0a0e', colorTextMuted: '#6b5a5d', colorBorder: '#e2d2d5',
+    },
+  },
+  {
+    name: 'Alto Contraste',
+    tag: 'Accesibilidad',
+    colors: {
+      colorBase: '#ffffff', colorSurface: '#ffffff', colorPrimary: '#800000',
+      colorSecondary: '#000000', colorAccent: '#000000', colorSuccess: '#006400',
+      colorDanger: '#8b0000', colorText: '#000000', colorTextMuted: '#000000', colorBorder: '#000000',
+    },
+  },
+  {
     name: 'Nocturno Índigo',
+    tag: null,
     colors: {
       colorBase: '#0f172a', colorSurface: '#1e293b', colorPrimary: '#6366f1',
       colorSecondary: '#22d3ee', colorAccent: '#f59e0b', colorSuccess: '#10b981',
@@ -46,6 +65,7 @@ const PRESETS = [
   },
   {
     name: 'Océano Profundo',
+    tag: null,
     colors: {
       colorBase: '#0c1826', colorSurface: '#132337', colorPrimary: '#0ea5e9',
       colorSecondary: '#06b6d4', colorAccent: '#f59e0b', colorSuccess: '#22c55e',
@@ -54,6 +74,7 @@ const PRESETS = [
   },
   {
     name: 'Bosque Esmeralda',
+    tag: null,
     colors: {
       colorBase: '#0a1f0f', colorSurface: '#12301a', colorPrimary: '#10b981',
       colorSecondary: '#34d399', colorAccent: '#f59e0b', colorSuccess: '#84cc16',
@@ -62,6 +83,7 @@ const PRESETS = [
   },
   {
     name: 'Amanecer Violeta',
+    tag: null,
     colors: {
       colorBase: '#150d27', colorSurface: '#241645', colorPrimary: '#a855f7',
       colorSecondary: '#ec4899', colorAccent: '#f59e0b', colorSuccess: '#10b981',
@@ -107,28 +129,45 @@ export default function ColorSettings() {
       {/* Presets */}
       <div className="card mb-6">
         <div className="card-title mb-4">Temas Predefinidos</div>
-        <div className="flex gap-4" style={{ flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 'var(--space-3)' }}>
+          <Accessibility size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} /> El tema de <strong style={{ color: 'var(--color-accent)' }}>Alto Contraste</strong> está diseñado para personas con baja visión o daltonismo.
+        </div>
+        <div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
           {PRESETS.map(preset => (
             <button
               key={preset.name}
               onClick={() => applyPreset(preset)}
               className="btn btn-secondary"
-              id={`preset-${preset.name.toLowerCase().replace(/\s+/g, '-')}`}
+              id={`preset-${preset.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}
               style={{
                 flexDirection: 'column',
                 height: 'auto',
-                padding: 'var(--space-4)',
-                gap: 'var(--space-3)',
-                minWidth: 140,
+                padding: 'var(--space-3) var(--space-4)',
+                gap: 'var(--space-2)',
+                minWidth: 130,
                 alignItems: 'flex-start',
+                position: 'relative',
+                overflow: 'hidden',
               }}
             >
+              {preset.tag && (
+                <span style={{
+                  position: 'absolute', top: 4, right: 4,
+                  fontSize: 9, fontWeight: 800, textTransform: 'uppercase',
+                  letterSpacing: '0.06em', padding: '1px 5px',
+                  borderRadius: '4px',
+                  background: preset.tag === 'Accesibilidad' ? 'rgba(16,185,129,0.2)' : 'var(--color-primary-glow)',
+                  color: preset.tag === 'Accesibilidad' ? 'var(--color-success)' : 'var(--color-primary)',
+                }}>
+                  {preset.tag}
+                </span>
+              )}
               <div className="flex gap-1">
                 {[preset.colors.colorPrimary, preset.colors.colorSecondary, preset.colors.colorAccent, preset.colors.colorSuccess].map((c, i) => (
-                  <div key={i} style={{ width: 18, height: 18, borderRadius: '50%', background: c }} />
+                  <div key={i} style={{ width: 16, height: 16, borderRadius: '50%', background: c, border: '1px solid rgba(255,255,255,0.1)' }} />
                 ))}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600 }}>{preset.name}</span>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>{preset.name}</span>
             </button>
           ))}
         </div>

@@ -71,7 +71,7 @@ export default function Header({ currentPath, sidebarCollapsed, onToggleMobileMe
               width: 32,
               height: 32,
               borderRadius: '50%',
-              background: `linear-gradient(135deg, ${roleColor}, #22d3ee)`,
+              background: `linear-gradient(135deg, ${roleColor}, var(--color-secondary))`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
