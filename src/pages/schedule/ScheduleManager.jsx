@@ -75,7 +75,7 @@ export default function ScheduleManager() {
   const handleEnroll = async (activityId, activityType) => {
     try {
       const hostname = window.location.hostname;
-      await axios.post(`http://${hostname}:3001/api/enroll`, {
+      await axios.post('https://albercas.onrender.com/api/enroll', {
         userId: user.id,
         activityId,
         activityType

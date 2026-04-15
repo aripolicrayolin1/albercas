@@ -158,8 +158,8 @@ export default function UserForm({ onNavigate }) {
       try {
         const hostname = window.location.hostname;
         const [sRes, eRes] = await Promise.all([
-          axios.get(`http://${hostname}:3001/api/schedules`),
-          axios.get(`http://${hostname}:3001/api/events`)
+          axios.get('https://albercas.onrender.com/api/schedules'),
+          axios.get('https://albercas.onrender.com/api/events')
         ]);
         setDbSchedules(sRes.data);
         setDbEvents(eRes.data);
