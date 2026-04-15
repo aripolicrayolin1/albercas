@@ -42,22 +42,26 @@ export default function Header({ currentPath, sidebarCollapsed, onToggleMobileMe
         >
           <Menu size={20} />
         </button>
-        <div>
-          <div className="header-title">{title}</div>
-          <div className="header-breadcrumb" style={{ fontSize: 11 }}>
-            {new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        <div style={{ paddingLeft: 'var(--space-2)' }}>
+          <div className="header-title" style={{ fontSize: 18, letterSpacing: '-0.02em' }}>{title}</div>
+          <div className="header-breadcrumb" style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>
+            <span style={{ textTransform: 'capitalize' }}>
+              {new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="header-right">
-        <button className="header-btn" title="Buscar" aria-label="Buscar">
-          <Search size={16} />
-        </button>
-        <button className="header-btn" title="Notificaciones" aria-label="Notificaciones">
-          <Bell size={16} />
-          <span className="notif-badge" aria-hidden="true"></span>
-        </button>
+      <div className="header-right" style={{ gap: 'var(--space-4)' }}>
+        <div className="flex items-center gap-2">
+          <button className="header-btn" title="Buscar" aria-label="Buscar">
+            <Search size={18} />
+          </button>
+          <button className="header-btn" title="Notificaciones" aria-label="Notificaciones">
+            <Bell size={18} />
+            <span className="notif-badge" aria-hidden="true" style={{ top: 8, right: 8 }}></span>
+          </button>
+        </div>
 
         <div 
           className="flex items-center gap-2" 

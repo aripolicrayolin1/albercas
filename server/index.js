@@ -342,31 +342,38 @@ app.get('/api/stats', async (req, res) => {
     const [revStats] = await db.query(`
       SELECT
        (SELECT SUM(amount) FROM payments WHERE MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE()) AND status="completado") as currentMonthRevenue,
-       (SELECT SUM(amount) FROM payments WHERE MONTH(date) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND status="completado") as lastMonthRevenue
+       (SELECT SUM(amount) FROM payments WHERE MONTH(date) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND status="completado") as lastMonthRevenue,
+       (SELECT COUNT(*) FROM payments WHERE status != 'completado') as pendingPayments
+    `);
+
+    const [eventStats] = await db.query(`
+      SELECT COUNT(*) as upcomingEvents FROM events WHERE status='próximo'
     `);
 
     const s = userStats[0];
     const a = attStats[0];
     const r = revStats[0];
+    const e = eventStats[0];
 
     // Calcula el cambio porcentual si hubo datos anteriores
     const attChange = a.yesterdayAttendance > 0 ? Math.round(((a.todayAttendance - a.yesterdayAttendance) / a.yesterdayAttendance) * 100) : 0;
     const revChange = r.lastMonthRevenue > 0 ? Math.round(((Number(r.currentMonthRevenue || 0) - Number(r.lastMonthRevenue || 0)) / Number(r.lastMonthRevenue || 0)) * 100) : 0;
 
     res.json({
-      totalUsers: s.totalUsers,
-      activeUsers: s.activeUsers,
-      usersThisMonth: s.usersThisMonth,
-      todayAttendance: a.todayAttendance,
+      totalUsers: s.totalUsers || 0,
+      activeUsers: s.activeUsers || 0,
+      usersThisMonth: s.usersThisMonth || 0,
+      todayAttendance: a.todayAttendance || 0,
       attendanceChange: attChange > 0 ? `+${attChange}% vs ayer` : (attChange < 0 ? `${attChange}% vs ayer` : '0% vs ayer'),
       monthlyRevenue: Number(r.currentMonthRevenue || 0),
       revenueChange: revChange > 0 ? `+${revChange}% vs mes ant.` : (revChange < 0 ? `${revChange}% vs mes ant.` : ''),
-      pendingPayments: 0,
-      upcomingEvents: 4,
+      pendingPayments: r.pendingPayments || 0,
+      upcomingEvents: e.upcomingEvents || 0,
       poolsOperating: 3,
       averageOccupancy: 65,
     });
   } catch (err) {
+    console.error('Error fetching stats:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -642,9 +649,9 @@ app.get('/api/schedules', async (req, res) => {
     const [rows] = await db.query('SELECT * FROM schedules');
     const mapped = rows.map(r => ({
       ...r,
-      startTime: r.start_time.substring(0, 5),
-      endTime: r.end_time.substring(0, 5),
-      days: r.days.split(','),
+      startTime: (r.start_time || '00:00:00').substring(0, 5),
+      endTime: (r.end_time || '23:59:00').substring(0, 5),
+      days: (r.days || '').split(','),
     }));
     res.json(mapped);
   } catch (err) {
@@ -770,37 +777,7 @@ app.get('/api/payments/check-ref/:reference', async (req, res) => {
   }
 });
 
-// ── 9. DASHBOARD STATS ───────────────────────────────────────────────
-app.get('/api/stats', async (req, res) => {
-  try {
-    const [[{ todayAttendance }]] = await db.query("SELECT COUNT(*) as todayAttendance FROM attendance WHERE scan_date = CURDATE() AND status='entrada'");
-    const [[{ monthlyRevenue }]] = await db.query("SELECT SUM(amount) as monthlyRevenue FROM payments WHERE MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE()) AND status='completado'");
-    const [[{ upcomingEvents }]] = await db.query("SELECT COUNT(*) as upcomingEvents FROM events WHERE status='próximo'");
-    const [[{ totalUsers }]] = await db.query("SELECT COUNT(*) as totalUsers FROM users");
-    const [[{ activeUsers }]] = await db.query("SELECT COUNT(*) as activeUsers FROM users WHERE status='activo'");
-    const [[{ usersThisMonth }]] = await db.query("SELECT COUNT(*) as usersThisMonth FROM users WHERE MONTH(join_date) = MONTH(CURDATE())");
-    const [[{ pendingPayments }]] = await db.query("SELECT COUNT(*) as pendingPayments FROM payments WHERE status != 'completado'");
 
-    // Hardcode pools operating and calculate generic occupancy
-    const poolsOperating = 3; 
-    const averageOccupancy = 68; // Podría calcularse basado en el horario actual
-
-    res.json({
-      todayAttendance: todayAttendance || 0,
-      monthlyRevenue: monthlyRevenue || 0,
-      upcomingEvents: upcomingEvents || 0,
-      totalUsers: totalUsers || 0,
-      activeUsers: activeUsers || 0,
-      usersThisMonth: usersThisMonth || 0,
-      pendingPayments: pendingPayments || 0,
-      poolsOperating,
-      averageOccupancy,
-      // No mandamos métricas engañosas (se elimina logic de "change" desde UI)
-    });
-  } catch(err) {
-    res.status(500).json({error: err.message});
-  }
-});
 
 app.get('/api/stats/revenue-chart', async (req, res) => {
   try {

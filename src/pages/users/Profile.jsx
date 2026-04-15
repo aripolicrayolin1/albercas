@@ -97,13 +97,13 @@ export default function Profile() {
           <div className="card">
             <div style={{ position: 'relative', textAlign: 'center', padding: 'var(--space-6) 0' }}>
               <div style={{
-                width: 120, height: 120, borderRadius: '50%',
-                background: `linear-gradient(135deg, ${roleColor}, var(--color-secondary))`,
+                width: 130, height: 130, borderRadius: '50%',
+                background: `linear-gradient(135deg, ${roleColor}, var(--color-primary))`,
                 margin: '0 auto var(--space-4)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 40, fontWeight: 800, color: 'white',
-                boxShadow: `0 10px 25px -5px ${roleColor}44`,
-                position: 'relative', border: '4px solid var(--color-base)'
+                fontSize: 44, fontWeight: 800, color: 'white',
+                boxShadow: `0 20px 40px -10px ${roleColor}66`,
+                position: 'relative', border: '5px solid var(--color-surface)'
               }}>
                 {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                 <button style={{
@@ -248,10 +248,20 @@ export default function Profile() {
             </button>
           </form>
           
-          <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'var(--color-base)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', display: 'flex', gap: 12 }}>
-            <div style={{ color: 'var(--color-primary)', flexShrink: 0 }}>ℹ️</div>
-            <div style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-              Los cambios en tu nombre o correo electrónico podrían requerir una nueva validación por parte del administrador municipal para mantener la integridad de tu carnet NFC.
+          <div style={{ 
+            marginTop: 'var(--space-6)', 
+            padding: 'var(--space-5)', 
+            background: 'linear-gradient(to bottom right, var(--color-surface), var(--color-base))', 
+            borderRadius: 'var(--radius-lg)', 
+            border: '1px solid var(--color-border)', 
+            display: 'flex', 
+            gap: 16,
+            boxShadow: 'inset 0 0 20px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{ color: 'var(--color-secondary)', fontSize: 20 }}>🛡️</div>
+            <div style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.7 }}>
+              <strong style={{ color: 'var(--color-primary)', display: 'block', marginBottom: 4 }}>Seguridad de Identidad</strong>
+              Los cambios en tu nombre o correo electrónico requieren validación administrativa para asegurar la integridad de tu carnet NFC y acceso a las albercas.
             </div>
           </div>
         </div>

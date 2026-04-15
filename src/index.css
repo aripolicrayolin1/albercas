@@ -4,17 +4,17 @@
    CSS CUSTOM PROPERTIES (Dynamic Theme)
    ============================================================ */
 :root {
-  /* ── Paleta Morena Institucional: Vino Profundo + Fondo Claro + Dorado ── */
-  --color-base:         #f8f4f2;   /* Fondo hueso limpio */
+  /* ── Paleta Morena Premium: Identidad Institucional Tulancingo ── */
+  --color-base:         #fcfaf8;   /* Fondo hueso premium */
   --color-surface:      #ffffff;   /* Superficies blancas puras */
-  --color-primary:      #5d101d;   /* Vino profundo (Identidad) */
-  --color-secondary:    #c19434;   /* Dorado sólido equilibrado */
-  --color-accent:       #a0781c;   /* Dorado oscuro legibilidad */
-  --color-success:      #16a34a;
-  --color-danger:       #dc2626;
-  --color-text:         #1a0a0e;   /* Texto oscuro profundo */
-  --color-text-muted:   #6b5a5d;   /* Gris guinda suave */
-  --color-border:       #e2d2d5;   /* Borde guinda suave */
+  --color-primary:      #4a0d14;   /* Guinda profundo y serio */
+  --color-secondary:    #b08d44;   /* Dorado bronce elegante */
+  --color-accent:       #96752d;   /* Dorado oscuro legibilidad */
+  --color-success:      #1b5e20;   /* Verde profundo */
+  --color-danger:       #b71c1c;   /* Rojo profundo */
+  --color-text:         #1c1917;   /* Neutro cálido oscuro */
+  --color-text-muted:   #78716c;   /* Gris cálido suave */
+  --color-border:       #e7e1dd;   /* Borde suave cálido */
 
   /* Derived states */
   --color-primary-glow:  rgba(93, 16, 29, 0.15);
@@ -59,7 +59,7 @@
   --sidebar-collapsed: 72px;
 
   /* Header */
-  --header-height: 64px;
+  --header-height: 72px;
 
   /* Bottom nav (mobile) */
   --bottom-nav-height: 64px;
@@ -150,9 +150,9 @@ ul, ol { list-style: none; }
   left: 0;
   height: 100vh;
   width: var(--sidebar-width);
-  background: var(--sidebar-bg, var(--color-primary));  /* GUINDA sólido */
-  border-right: none;
-  box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+  background: var(--color-primary);
+  border-right: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 10px 0 40px rgba(0,0,0,0.15);
   display: flex;
   flex-direction: column;
   z-index: 1000;
@@ -281,7 +281,8 @@ ul, ol { list-style: none; }
   width: 3px;
   height: 20px;
   background: var(--color-secondary);  /* Dorado */
-  border-radius: 0 3px 3px 0;
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 10px var(--color-secondary);
 }
 
 .sidebar-link-icon {
@@ -376,11 +377,11 @@ ul, ol { list-style: none; }
   right: 0;
   height: calc(var(--header-height) + var(--safe-area-top));
   padding-top: var(--safe-area-top);
-  background: rgba(255, 255, 255, 0.95);  /* Blanco con leve transparencia */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 2px solid var(--color-border);
-  box-shadow: 0 2px 12px rgba(139,26,44,0.08);
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 4px 20px rgba(74,13,20,0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;

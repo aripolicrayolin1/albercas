@@ -19,10 +19,10 @@ export const ROLE_LABELS = {
 };
 
 export const ROLE_COLORS = {
-  superadmin: '#7c3aed',
-  admin: '#0891b2',
-  support: '#0d9488',
-  user: '#0369a1',
+  superadmin: '#4a0d14', // Vino Tulancingo
+  admin: '#6e1420',      // Vino medio
+  support: '#b08d44',    // Dorado elegante
+  user: '#78716c',       // Gris piedra premium
 };
 
 // Demo credentials for each role

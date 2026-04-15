@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Wifi, Calendar, Users, User, Waves } from 'lucide-react';
+import { LayoutDashboard, Wifi, Calendar, Users, User, ShieldCheck } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useAuth } from '../../context/AuthContext';
@@ -89,7 +89,7 @@ export default function DashboardLayout({
                 <span className="mobile-nav-icon">
                   {item.nfc ? (
                     <span className="mobile-nav-nfc">
-                      <Waves size={20} />
+                      <ShieldCheck size={20} />
                     </span>
                   ) : (
                     <Icon size={20} />
