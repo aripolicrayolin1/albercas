@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   LayoutDashboard, Wifi, Users, Calendar, CreditCard,
   BarChart3, Brain, Palette, ClipboardList, HelpCircle,
-  User, History, ChevronLeft, ChevronRight, Waves, LogOut
+  User, History, ChevronLeft, ChevronRight, LogOut
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { SIDEBAR_MENUS, ROLE_LABELS, ROLE_COLORS } from '../../data/roles';

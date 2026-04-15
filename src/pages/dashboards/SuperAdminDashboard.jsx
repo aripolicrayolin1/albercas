@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   Users, UserCheck, CreditCard, TrendingUp,
-  Calendar, Waves, AlertCircle, Activity
+  Calendar, Droplets, AlertCircle, Activity
 } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
 import {
@@ -109,14 +109,14 @@ export default function SuperAdminDashboard({ onNavigate }) {
     <div className="animate-fade-in">
       {/* Stats */}
       <div className="stat-grid mb-6">
-        <StatCard icon={Users} label="Usuarios Registrados" value={stats.totalUsers.toLocaleString()} change={stats.usersThisMonth > 0 ? `+${stats.usersThisMonth} este mes` : ''} color="#6366f1" bg="rgba(99,102,241,0.12)" />
-        <StatCard icon={UserCheck} label="Asistencia Hoy" value={stats.todayAttendance} change={stats.attendanceChange} color="#10b981" bg="rgba(16,185,129,0.12)" />
-        <StatCard icon={CreditCard} label="Ingresos del Mes" value={`$${stats.monthlyRevenue.toLocaleString()}`} change={stats.revenueChange} color="#f59e0b" bg="rgba(245,158,11,0.12)" />
-        <StatCard icon={Activity} label="Ocupación Promedio" value={`${stats.averageOccupancy}%`} color="#22d3ee" bg="rgba(34,211,238,0.12)" />
-        <StatCard icon={Waves} label="Albercas Operando" value={stats.poolsOperating} color="#8b5cf6" bg="rgba(139,92,246,0.12)" />
-        <StatCard icon={AlertCircle} label="Pagos Pendientes" value={stats.pendingPayments} color="#ef4444" bg="rgba(239,68,68,0.12)" />
-        <StatCard icon={Calendar} label="Eventos Próximos" value={stats.upcomingEvents} color="#06b6d4" bg="rgba(6,182,212,0.12)" />
-        <StatCard icon={TrendingUp} label="Usuarios Activos" value={stats.activeUsers.toLocaleString()} color="#10b981" bg="rgba(16,185,129,0.12)" />
+        <StatCard icon={Users} label="Usuarios Registrados" value={stats.totalUsers.toLocaleString()} change={stats.usersThisMonth > 0 ? `+${stats.usersThisMonth} este mes` : ''} color="var(--color-primary)" bg="rgba(74,13,20,0.08)" />
+        <StatCard icon={UserCheck} label="Asistencia Hoy" value={stats.todayAttendance} change={stats.attendanceChange} color="#1b5e20" bg="rgba(27,94,32,0.08)" />
+        <StatCard icon={CreditCard} label="Ingresos del Mes" value={`$${stats.monthlyRevenue.toLocaleString()}`} change={stats.revenueChange} color="var(--color-secondary)" bg="rgba(176,141,68,0.08)" />
+        <StatCard icon={Activity} label="Ocupación Promedio" value={`${stats.averageOccupancy}%`} color="#4a0d14" bg="rgba(74,13,20,0.08)" />
+        <StatCard icon={Droplets} label="Albercas Operando" value={stats.poolsOperating} color="var(--color-secondary)" bg="rgba(176,141,68,0.08)" />
+        <StatCard icon={AlertCircle} label="Pagos Pendientes" value={stats.pendingPayments} color="var(--color-danger)" bg="rgba(183,28,28,0.08)" />
+        <StatCard icon={Calendar} label="Eventos Próximos" value={stats.upcomingEvents} color="var(--color-secondary)" bg="rgba(176,141,68,0.08)" />
+        <StatCard icon={TrendingUp} label="Usuarios Activos" value={stats.activeUsers.toLocaleString()} color="#1b5e20" bg="rgba(27,94,32,0.08)" />
       </div>
 
       <div className="grid-2 mb-6" style={{ gap: 'var(--space-4)' }}>

@@ -53,10 +53,10 @@ export default function AdminDashboard({ onNavigate }) {
   return (
     <div className="animate-fade-in">
       <div className="stat-grid mb-6">
-        <StatCard icon={UserCheck} label="Asistencia Hoy" value={stats.todayAttendance} change="" color="#10b981" bg="rgba(16,185,129,0.12)" />
-        <StatCard icon={CreditCard} label="Ingresos del Mes" value={`$${stats.monthlyRevenue.toLocaleString()}`} change="" color="#f59e0b" bg="rgba(245,158,11,0.12)" />
-        <StatCard icon={Activity} label="Ocupación" value={`${stats.averageOccupancy}%`} color="#22d3ee" bg="rgba(34,211,238,0.12)" />
-        <StatCard icon={Calendar} label="Eventos Próximos" value={stats.upcomingEvents} color="#8b5cf6" bg="rgba(139,92,246,0.12)" />
+        <StatCard icon={UserCheck} label="Asistencia Hoy" value={stats.todayAttendance} change="" color="#1b5e20" bg="rgba(27,94,32,0.08)" />
+        <StatCard icon={CreditCard} label="Ingresos del Mes" value={`$${stats.monthlyRevenue.toLocaleString()}`} change="" color="var(--color-secondary)" bg="rgba(176,141,68,0.08)" />
+        <StatCard icon={Activity} label="Ocupación" value={`${stats.averageOccupancy}%`} color="var(--color-primary)" bg="rgba(74,13,20,0.08)" />
+        <StatCard icon={Calendar} label="Eventos Próximos" value={stats.upcomingEvents} color="var(--color-secondary)" bg="rgba(176,141,68,0.08)" />
       </div>
 
       <div className="grid-2" style={{ gap: 'var(--space-4)' }}>

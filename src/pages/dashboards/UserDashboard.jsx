@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, CreditCard, User, Waves, Star, Clock, LogOut, Shield, Key, Eye, EyeOff } from 'lucide-react';
+import { Calendar, CreditCard, User, Droplets, Star, Clock, LogOut, Shield, Key, Eye, EyeOff, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 
@@ -104,8 +104,8 @@ export default function UserDashboard({ onNavigate }) {
     <div className="animate-fade-in relative">
       {/* Welcome banner */}
       <div className="card mb-6" style={{
-        background: 'linear-gradient(135deg, rgba(93,16,29,0.1), rgba(193,148,52,0.08))',
-        border: '1px solid rgba(93,16,29,0.15)',
+        background: 'linear-gradient(135deg, rgba(74,13,20,0.05), rgba(176,141,68,0.05))',
+        border: '1px solid var(--color-border)',
       }}>
         <div className="flex items-center gap-4">
           <div style={{
@@ -300,7 +300,7 @@ export default function UserDashboard({ onNavigate }) {
                   {isEnrolled ? (
                     <div className="badge badge-success">Inscrito</div>
                   ) : e.status !== 'finalizado' && e.registered < e.capacity && (
-                    <button className="btn btn-primary btn-sm" onClick={() => handleEnroll(e.id, 'event')}>Reservar lugar</button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => handleEnroll(e.id, 'event')}>Reservar lugar</button>
                   )}
                 </div>
               </div>
