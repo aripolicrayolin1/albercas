@@ -18,11 +18,10 @@ const pool = mysql.createPool({
 (async () => {
   try {
     const connection = await pool.getConnection();
-    console.log('✅ Conexión exitosa a MySQL (Laragon)');
+    console.log('✅ Conexión exitosa a la Base de Datos (Nube/Cloud)');
     connection.release();
   } catch (err) {
-    console.error('❌ Error conectando a MySQL:', err.message);
-    console.error('Asegúrate de que Laragon esté encendido y la base de datos "municipal_pool" creada.');
+    console.error('❌ Error conectando a la Base de Datos:', err.message);
   }
 })();
 
