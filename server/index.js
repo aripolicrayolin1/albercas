@@ -22,6 +22,69 @@ const client = new MercadoPagoConfig({
 app.use(cors());
 app.use(express.json());
 
+// ── DB INITIALIZATION (Ensures all 7 tables exist in Cloud) ───────────────────
+async function initDB() {
+  try {
+    // 1. payment_types
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS payment_types (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        price DECIMAL(10, 2) NOT NULL,
+        duration VARCHAR(50) NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        description TEXT
+      )
+    `);
+    // 2. schedules
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS schedules (
+        id VARCHAR(50) PRIMARY KEY,
+        title VARCHAR(150) NOT NULL,
+        pool VARCHAR(100) NOT NULL,
+        start_time TIME NOT NULL,
+        end_time TIME NOT NULL,
+        days VARCHAR(50) NOT NULL,
+        capacity INT NOT NULL,
+        instructor VARCHAR(100),
+        category VARCHAR(50) NOT NULL,
+        color VARCHAR(20)
+      )
+    `);
+    // 3. events
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS events (
+        id VARCHAR(50) PRIMARY KEY,
+        title VARCHAR(150) NOT NULL,
+        event_date DATE NOT NULL,
+        event_time TIME NOT NULL,
+        duration VARCHAR(50) NOT NULL,
+        pool VARCHAR(100) NOT NULL,
+        capacity INT NOT NULL,
+        registered INT DEFAULT 0,
+        status VARCHAR(20) DEFAULT 'próximo',
+        description TEXT
+      )
+    `);
+    // 4. enrollments
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS enrollments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id VARCHAR(50) NOT NULL,
+        activity_id VARCHAR(50) NOT NULL,
+        activity_type ENUM('schedule', 'event') NOT NULL,
+        enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_enrollment (user_id, activity_id, activity_type),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('✅ Base de Datos Sincronizada (7 tablas verificadas)');
+  } catch (err) {
+    console.error('❌ Error inicializando BD:', err);
+  }
+}
+initDB();
+
 // ── 1. AUTH & LOGIN ─────────────────────────────────────────────
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
@@ -423,11 +486,12 @@ app.post('/api/create-preference', async (req, res) => {
           }
         ],
         back_urls: {
-          success: `http://${req.headers.host || 'localhost:3001'}/api/payments/status?status=success&userId=${userId}`,
-          failure: `http://${req.headers.host || 'localhost:3001'}/api/payments/status?status=failure&userId=${userId}`,
-          pending: `http://${req.headers.host || 'localhost:3001'}/api/payments/status?status=pending&userId=${userId}`,
+          success: `${process.env.VITE_API_URL || `http://${req.headers.host}`}/payments/status?status=success&userId=${userId}`,
+          failure: `${process.env.VITE_API_URL || `http://${req.headers.host}`}/payments/status?status=failure&userId=${userId}`,
+          pending: `${process.env.VITE_API_URL || `http://${req.headers.host}`}/payments/status?status=pending&userId=${userId}`,
         },
         external_reference: String(req.body.external_reference || userId),
+        auto_return: 'approved',
         binary_mode: true,
       }
     });
@@ -445,10 +509,11 @@ app.post('/api/create-preference', async (req, res) => {
 // Helper for Return URLs (Back URLs) to simulate feedback
 app.get('/api/payments/status', (req, res) => {
   const { status, userId } = req.query;
-  // En un entorno real, aquí se usarían Webhooks para confirmar el pago
-  // Por ahora redirigimos al frontend con un parámetro de éxito
-  const frontendHost = req.headers.host ? req.headers.host.split(':')[0] : 'localhost';
-  res.redirect(`http://${frontendHost}:5173/users?payment=${status}&userId=${userId}`);
+  const frontendUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://albercass.vercel.app' 
+    : 'http://localhost:5173';
+    
+  res.redirect(`${frontendUrl}/profile?payment=${status}&userId=${userId}`);
 });
 
 // Polling endpoint for QR code checkout
